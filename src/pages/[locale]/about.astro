@@ -20,7 +20,19 @@ const t = useTranslations(locale);
 >
   <article class="prose">
     <h1>{t('about.title')}</h1>
-    <p>{t('site.tagline')}</p>
+
+    <p>{t('about.whatIsIt')}</p>
+    <p>{t('about.howItWorks')}</p>
+    <p>{t('about.multiAuthor')}</p>
+
+    <blockquote>
+      <p>
+        <strong>{t('about.responsibleHeading')}.</strong>{' '}
+        {t('about.responsibleBody')}
+      </p>
+    </blockquote>
+
+    <h2>{t('about.linksHeading')}</h2>
     <ul>
       <li>
         <a href={SITE.repoUrl} target="_blank" rel="noopener noreferrer">{t('footer.sourceCode')}</a

@@ -17,9 +17,10 @@ export const localeFlags: Record<Locale, string> = {
 
 export const ui = {
   pt: {
-    'site.title': 'g01x5 Writeups CTF',
+    'site.title': 'g01x5 CTF',
     'site.tagline': 'Writeups de CTF: web, pwn, reverse, crypto, forense e mais.',
     'nav.home': 'Início',
+    'nav.guide': 'Guia',
     'nav.tags': 'Tags',
     'nav.about': 'Sobre',
     'writeups.title': 'Todos os writeups',
@@ -31,6 +32,7 @@ export const ui = {
     'sidebar.category': 'Categoria',
     'sidebar.difficulty': 'Dificuldade',
     'sidebar.event': 'Organizadora',
+    'sidebar.author': 'Autor',
     'sidebar.tags': 'Tema',
     'sidebar.month': 'Mês de publicação',
     'sidebar.showing': 'Mostrando',
@@ -54,6 +56,16 @@ export const ui = {
     'tags.empty': 'Nenhuma tag cadastrada ainda.',
     'tag.writeupsWithTag': 'Writeups com a tag',
     'about.title': 'Sobre',
+    'about.whatIsIt':
+      'Este é um acervo público de writeups de CTF (Capture The Flag) — desafios de segurança da informação resolvidos e documentados passo a passo, para quem quer aprender lendo como outra pessoa raciocinou até a solução.',
+    'about.howItWorks':
+      'O conteúdo é publicado em português, espanhol e inglês, e organizado por categoria (web, pwn, reverse, crypto, forense...), dificuldade, tema, organizadora do CTF, autor e mês de publicação — use os filtros na página inicial para navegar.',
+    'about.multiAuthor':
+      'Cada writeup é assinado por quem escreveu — o autor pode variar entre um texto e outro conforme mais pessoas contribuem com o acervo.',
+    'about.responsibleHeading': 'Publicação responsável',
+    'about.responsibleBody':
+      'Os writeups aqui só são publicados depois do encerramento do CTF (ou conforme as regras específicas do evento), sem credenciais reais, dados pessoais ou segredos de infraestrutura — o objetivo é puramente educacional.',
+    'about.linksHeading': 'Links',
     'lang.switch': 'Idioma',
     'footer.sourceCode': 'Código-fonte no GitHub',
     'footer.author': 'Autor',
@@ -64,9 +76,10 @@ export const ui = {
     'notFound.backHome': 'Voltar para o início',
   },
   es: {
-    'site.title': 'g01x5 Writeups CTF',
+    'site.title': 'g01x5 CTF',
     'site.tagline': 'Writeups de CTF: web, pwn, reverse, crypto, forense y más.',
     'nav.home': 'Inicio',
+    'nav.guide': 'Guía',
     'nav.tags': 'Etiquetas',
     'nav.about': 'Acerca de',
     'writeups.title': 'Todos los writeups',
@@ -78,6 +91,7 @@ export const ui = {
     'sidebar.category': 'Categoría',
     'sidebar.difficulty': 'Dificultad',
     'sidebar.event': 'Organizadora',
+    'sidebar.author': 'Autor',
     'sidebar.tags': 'Tema',
     'sidebar.month': 'Mes de publicación',
     'sidebar.showing': 'Mostrando',
@@ -101,6 +115,16 @@ export const ui = {
     'tags.empty': 'Aún no hay etiquetas registradas.',
     'tag.writeupsWithTag': 'Writeups con la etiqueta',
     'about.title': 'Acerca de',
+    'about.whatIsIt':
+      'Este es un acervo público de writeups de CTF (Capture The Flag) — desafíos de seguridad de la información resueltos y documentados paso a paso, para quien quiera aprender leyendo cómo otra persona razonó hasta la solución.',
+    'about.howItWorks':
+      'El contenido se publica en portugués, español e inglés, y está organizado por categoría (web, pwn, reverse, crypto, forense...), dificultad, tema, organizadora del CTF, autor y mes de publicación — usa los filtros en la página de inicio para navegar.',
+    'about.multiAuthor':
+      'Cada writeup está firmado por quien lo escribió — el autor puede variar de un texto a otro a medida que más personas contribuyen al acervo.',
+    'about.responsibleHeading': 'Publicación responsable',
+    'about.responsibleBody':
+      'Los writeups aquí solo se publican después de que el CTF termina (o según las reglas específicas del evento), sin credenciales reales, datos personales ni secretos de infraestructura — el objetivo es puramente educativo.',
+    'about.linksHeading': 'Enlaces',
     'lang.switch': 'Idioma',
     'footer.sourceCode': 'Código fuente en GitHub',
     'footer.author': 'Autor',
@@ -111,9 +135,10 @@ export const ui = {
     'notFound.backHome': 'Volver al inicio',
   },
   en: {
-    'site.title': 'g01x5 CTF Writeups',
+    'site.title': 'g01x5 CTF',
     'site.tagline': 'CTF writeups: web, pwn, reverse, crypto, forensics and more.',
     'nav.home': 'Home',
+    'nav.guide': 'Guide',
     'nav.tags': 'Tags',
     'nav.about': 'About',
     'writeups.title': 'All writeups',
@@ -125,6 +150,7 @@ export const ui = {
     'sidebar.category': 'Category',
     'sidebar.difficulty': 'Difficulty',
     'sidebar.event': 'Organizer',
+    'sidebar.author': 'Author',
     'sidebar.tags': 'Topic',
     'sidebar.month': 'Month published',
     'sidebar.showing': 'Showing',
@@ -148,6 +174,16 @@ export const ui = {
     'tags.empty': 'No tags yet.',
     'tag.writeupsWithTag': 'Writeups tagged',
     'about.title': 'About',
+    'about.whatIsIt':
+      'This is a public archive of CTF (Capture The Flag) writeups — information security challenges solved and documented step by step, for anyone who wants to learn by reading how someone else reasoned their way to the solution.',
+    'about.howItWorks':
+      'Content is published in Portuguese, Spanish and English, and organized by category (web, pwn, reverse, crypto, forensics...), difficulty, topic, CTF organizer, author and month published — use the filters on the home page to browse.',
+    'about.multiAuthor':
+      'Each writeup is signed by whoever wrote it — the author may vary from one piece to another as more people contribute to the archive.',
+    'about.responsibleHeading': 'Responsible publication',
+    'about.responsibleBody':
+      "Writeups here are only published after the CTF has ended (or per the event's specific rules), with no real credentials, personal data, or infrastructure secrets — the goal is purely educational.",
+    'about.linksHeading': 'Links',
     'lang.switch': 'Language',
     'footer.sourceCode': 'Source code on GitHub',
     'footer.author': 'Author',

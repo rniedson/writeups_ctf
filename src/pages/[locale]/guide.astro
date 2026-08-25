@@ -1,0 +1,31 @@
+---
+import { render } from 'astro:content';
+import GuideLayout from '../../layouts/GuideLayout.astro';
+import { locales, type Locale } from '../../i18n/ui';
+import { getGuideForLocale } from '../../lib/guides';
+
+export function getStaticPaths() {
+  return locales.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: Locale };
+const result = await getGuideForLocale(locale, 'how-to-publish');
+
+if (!result) {
+  return new Response('Guide not found', { status: 404 });
+}
+
+const { entry, isFallback } = result;
+const { Content, headings } = await render(entry);
+---
+
+<GuideLayout
+  locale={locale}
+  title={entry.data.title}
+  description={entry.data.description}
+  pathWithoutLocale="guide/"
+  headings={headings}
+  isFallback={isFallback}
+>
+  <Content />
+</GuideLayout>

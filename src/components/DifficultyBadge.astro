@@ -21,37 +21,26 @@ const label = t(labels[difficulty]);
 <style>
   .badge-difficulty-easy {
     background: color-mix(in srgb, #2f9e5e 18%, transparent);
-    color: #1f8a4d;
+    color: #6bdb9c;
     border-color: color-mix(in srgb, #2f9e5e 35%, transparent);
   }
   .badge-difficulty-medium {
     background: color-mix(in srgb, #d98c1f 18%, transparent);
-    color: #b06f10;
+    color: #f0b84f;
     border-color: color-mix(in srgb, #d98c1f 35%, transparent);
   }
   .badge-difficulty-hard {
     background: color-mix(in srgb, #d94f4f 18%, transparent);
-    color: #c23d3d;
+    color: #f08080;
     border-color: color-mix(in srgb, #d94f4f 35%, transparent);
   }
-  :root[data-theme='dark'] .badge-difficulty-easy {
-    color: #6bdb9c;
+  :root[data-theme='light'] .badge-difficulty-easy {
+    color: #1f8a4d;
   }
-  :root[data-theme='dark'] .badge-difficulty-medium {
-    color: #f0b84f;
+  :root[data-theme='light'] .badge-difficulty-medium {
+    color: #b06f10;
   }
-  :root[data-theme='dark'] .badge-difficulty-hard {
-    color: #f08080;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme='light']) .badge-difficulty-easy {
-      color: #6bdb9c;
-    }
-    :root:not([data-theme='light']) .badge-difficulty-medium {
-      color: #f0b84f;
-    }
-    :root:not([data-theme='light']) .badge-difficulty-hard {
-      color: #f08080;
-    }
+  :root[data-theme='light'] .badge-difficulty-hard {
+    color: #c23d3d;
   }
 </style>

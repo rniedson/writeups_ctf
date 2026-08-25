@@ -11,7 +11,7 @@ tags:
   - rce
   - gtfobins
 pubDate: 2026-08-25
-author: 'g01x5'
+author: 'Niedson'
 draft: false
 ---
 

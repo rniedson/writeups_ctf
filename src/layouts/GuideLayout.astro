@@ -1,0 +1,67 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { useTranslations } from '../i18n/utils';
+import type { Locale } from '../i18n/ui';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  pathWithoutLocale: string;
+  headings: Heading[];
+  isFallback: boolean;
+}
+const { locale, title, description, pathWithoutLocale, headings, isFallback } = Astro.props;
+const t = useTranslations(locale);
+const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  pathWithoutLocale={pathWithoutLocale}
+>
+  <div class="writeup-layout">
+    <article
+      class="prose"
+      data-copy-label={t('writeup.copyCode')}
+      data-copied-label={t('writeup.copiedCode')}
+    >
+      <h1>{title}</h1>
+
+      {isFallback && <p class="notice">{t('writeup.fallbackNotice')}</p>}
+
+      <slot />
+    </article>
+
+    {
+      tocHeadings.length > 0 && (
+        <aside class="toc" aria-label={t('writeup.onThisPage')}>
+          <p class="toc-heading">{t('writeup.onThisPage')}</p>
+          <ol>
+            {tocHeadings.map((h) => (
+              <li class={`toc-depth-${h.depth}`}>
+                <a href={`#${h.slug}`} data-toc-target={h.slug}>
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </aside>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  import { addCopyButtons, initTocScrollspy } from '../lib/prose-enhancements.client';
+  addCopyButtons();
+  initTocScrollspy();
+</script>

@@ -18,8 +18,9 @@ Site publicado (após habilitar o deploy, veja [Deploy](#deploy)): `https://writ
   `src/lib/writeups.ts`.
 - **Sitemap** (`@astrojs/sitemap`, com tags `hreflang` por idioma) e **RSS** (`@astrojs/rss`, um feed
   por idioma em `/<locale>/rss.xml`).
-- Realce de sintaxe via Shiki (embutido no Astro), com tema claro/escuro que segue o toggle manual do
-  site (não só `prefers-color-scheme`).
+- Realce de sintaxe via Shiki (embutido no Astro), com tema claro/escuro via toggle manual — **escuro
+  é o padrão do site** (não segue `prefers-color-scheme`); claro só ativa se a pessoa escolher
+  explicitamente (persistido em `localStorage`).
 - **Imagem de compartilhamento (`og:image`) gerada por build**, uma por writeup e uma genérica por
   idioma, via `satori` + `@resvg/resvg-js` (`src/lib/og-image.ts`, endpoints `og.png.ts` e
   `[...slug].png.ts`). Fonte vendorizada em `src/assets/fonts/` (IBM Plex Mono, OFL).
@@ -38,31 +39,47 @@ Site publicado (após habilitar o deploy, veja [Deploy](#deploy)): `https://writ
   GitHub) via `remark-github-blockquote-alert`, com título localizável por writeup
   (`[!TIP/Sacada do desafio]`) e cor por tipo.
 - **A home é o catálogo completo** — sidebar de filtros (busca + categoria, dificuldade, organizadora
-  do CTF — o campo `event`, mês de publicação, tema/tag) sobre todos os writeups, tudo client-side
-  (sem index nem dependência), com estado refletido na URL (`?tag=rce&category=web`, por exemplo) pra
-  dar link direto de uma busca filtrada. `/writeups/` virou um redirect pra home;
+  do CTF — o campo `event`, autor, mês de publicação, tema/tag) sobre todos os writeups, tudo
+  client-side (sem index nem dependência), com estado refletido na URL (`?tag=rce&category=web`, por
+  exemplo) pra dar link direto de uma busca filtrada. `/writeups/` virou um redirect pra home;
   `/writeups/category/<categoria>/` e `/tags/<tag>/` continuam existindo como páginas estáticas à
-  parte (bom pra SEO e link direto).
+  parte (bom pra SEO e link direto). `author` é campo obrigatório no frontmatter — o site é pensado
+  pra ter vários autores diferentes, não só quem mantém o repositório.
+- **Guia de publicação no próprio site** (`/<idioma>/guide/`, coleção `guides` em
+  `src/content/guides/`) e **modelos de writeup** em [`templates/writeup/`](templates/writeup/)
+  (`pt.md`/`es.md`/`en.md` com o frontmatter comentado campo a campo) — ficam fora de
+  `src/content/writeups/` de propósito, então nunca entram na validação de schema dos writeups reais.
 
 ```text
+templates/writeup/              pt.md, es.md, en.md (frontmatter comentado) + imagens/ vazia — para
+                                 duplicar ao começar um writeup novo (não é conteúdo do site)
 src/
-├── assets/                    (reservado para imagens gerais do site, se precisar)
-├── components/                Header, Footer, LanguageSwitcher, ThemeToggle, WriteupCard
+├── assets/fonts/               fonte do og-image (IBM Plex Mono, OFL)
+├── components/                 Header, Footer, LanguageSwitcher, ThemeToggle, WriteupCard,
+│                                CategoryIcon, DifficultyBadge, ReadingProgress
 ├── content/
-│   └── writeups/
-│       └── <evento>/
-│           └── <desafio>/
-│               ├── pt.md      conteúdo em português
-│               ├── es.md      conteúdo em espanhol (opcional até existir)
-│               ├── en.md      conteúdo em inglês (opcional até existir)
-│               └── imagens/   imagens referenciadas com caminho relativo no .md (otimizadas pelo Astro)
-├── layouts/                   BaseLayout (head/SEO/OG/tema), WriteupLayout
+│   ├── writeups/
+│   │   └── <evento>/
+│   │       └── <desafio>/
+│   │           ├── pt.md      conteúdo em português
+│   │           ├── es.md      conteúdo em espanhol (opcional até existir)
+│   │           ├── en.md      conteúdo em inglês (opcional até existir)
+│   │           └── imagens/   imagens referenciadas com caminho relativo no .md (otimizadas pelo Astro)
+│   └── guides/
+│       └── how-to-publish/    pt.md, es.md, en.md — o guia publicado em /<idioma>/guide/
+├── layouts/                   BaseLayout (head/SEO/OG/tema), WriteupLayout, GuideLayout
 ├── i18n/                      dicionário de strings da UI (ui.ts) + helpers (utils.ts)
-├── lib/writeups.ts            agrupamento de traduções + resolução de fallback
+├── lib/
+│   ├── writeups.ts             agrupamento de traduções + resolução de fallback
+│   ├── guides.ts                mesma ideia, pra coleção guides
+│   ├── og-image.ts              renderização das imagens de compartilhamento (satori + resvg)
+│   ├── reading-time.ts
+│   └── prose-enhancements.client.ts   TOC com scrollspy + botão de copiar (WriteupLayout e GuideLayout)
 ├── pages/
 │   ├── index.astro            redireciona "/" -> "/pt/"
 │   └── [locale]/
 │       ├── index.astro        home = catálogo (busca + sidebar de filtros, client-side)
+│       ├── guide.astro         guia de publicação (coleção guides)
 │       ├── about.astro
 │       ├── rss.xml.js
 │       ├── og.png.ts          imagem de compartilhamento genérica do idioma
@@ -72,7 +89,9 @@ src/
 │           ├── category/[category].astro   página estática por categoria (link direto/SEO)
 │           ├── [...slug].astro             página do writeup (evento/desafio)
 │           └── [...slug].png.ts            imagem de compartilhamento do writeup
-└── styles/global.css          tokens de cor claro/escuro, tipografia, prosa
+└── styles/
+    ├── global.css              tokens de cor claro/escuro, tipografia, prosa
+    └── fonts/                  fonte de leitura do corpo (Lora, OFL)
 public/
 └── writeups/<evento>/<desafio>/   arquivos para download linkados no writeup (ex.: solve.py)
 ```
@@ -109,43 +128,28 @@ npm run format:check  # confere formatação sem alterar arquivos
 
 ## Como adicionar um novo writeup
 
-1. Crie a pasta `src/content/writeups/<evento-slug>/<desafio-slug>/` (slugs em minúsculas, sem
-   espaços/acentos — viram parte da URL).
-2. Adicione `pt.md` (e, quando tiver, `es.md`/`en.md`) com este frontmatter:
+Guia completo, passo a passo, publicado no próprio site em **`/<idioma>/guide/`** (ex.:
+`/pt/guide/`) — é a fonte que fica atualizada conforme o projeto muda, então comece por ali.
+Resumo rápido:
 
-   ```yaml
-   ---
-   title: 'Nome do desafio'
-   description: 'Resumo curto da solução'
-   event: 'Nome do CTF'
-   category: 'web' # web | pwn | reverse | crypto | forensics | misc | osint | hardware
-   difficulty: 'easy' # opcional: easy | medium | hard
-   tags:
-     - sql-injection
-     - python
-   pubDate: 2026-08-25
-   updatedDate: 2026-08-25 # opcional
-   author: 'g01x5' # opcional, esse é o padrão
-   draft: false # true esconde o writeup do site sem apagar o arquivo
-   ---
-   ```
-
-   O nome do arquivo (`pt.md`, `es.md`, `en.md`) é o que define o idioma — não existe campo `lang` no
-   frontmatter. Se só existir `pt.md`, as rotas `/es/` e `/en/` daquele writeup funcionam normalmente,
-   mostrando o conteúdo em português com um aviso de tradução pendente.
-
-3. Escreva o corpo em Markdown normal abaixo do frontmatter. Imagens vão em `imagens/` na mesma pasta
-   e são referenciadas com caminho relativo (`![tela de login](./imagens/login.png)`) — o Astro otimiza
-   automaticamente. Scripts/arquivos para download vão em `public/writeups/<evento>/<desafio>/` (veja
-   [Arquitetura](#arquitetura)). Para destacar uma sacada/observação importante, use a sintaxe de
-   callout do GitHub — `> [!TIP]` (ou `[!NOTE]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) na
-   primeira linha do blockquote; para dar um título próprio (traduzido), use
-   `> [!TIP/Título aqui]`.
-4. Rode `npm run check` — frontmatter inválido (categoria errada, data mal formatada, campo obrigatório
-   faltando) quebra aqui antes mesmo de gerar o build.
-5. Rode `npm run dev` e confira a página em `http://localhost:4321/pt/writeups/<evento-slug>/<desafio-slug>/`.
-6. Abra um PR. O workflow `CI` roda `astro check`, `format:check` e `build` automaticamente. Depois do
-   merge na branch `main`, o workflow `Deploy to GitHub Pages` publica o site.
+1. Duplique [`templates/writeup/`](templates/writeup/) para
+   `src/content/writeups/<evento-slug>/<desafio-slug>/` (slugs em minúsculas, sem espaços/acentos —
+   viram parte da URL). Os três arquivos de modelo (`pt.md`, `es.md`, `en.md`) já vêm com o
+   frontmatter comentado campo a campo e uma pasta `imagens/` vazia.
+2. Preencha o frontmatter. Campos obrigatórios: `title`, `description`, `event`, `category` (um dos
+   valores de `CATEGORIES` em `src/consts.ts`), `pubDate`, `author`. Opcionais: `difficulty`,
+   `updatedDate`, `tags`, `draft`. O nome do arquivo (`pt.md`/`es.md`/`en.md`) é o que define o
+   idioma — não existe campo `lang`. Publicar só `pt.md` já funciona: as rotas `/es/`/`/en/` mostram
+   a versão em português com aviso de tradução pendente até alguém traduzir.
+3. Escreva o corpo em Markdown normal. Callouts do GitHub (`> [!TIP]`, `[!NOTE]`, `[!IMPORTANT]`,
+   `[!WARNING]`, `[!CAUTION]`, com título opcional via `[!TIP/Título aqui]`) e imagens relativas
+   (`./imagens/nome.png`) funcionam automaticamente; scripts para download vão em
+   `public/writeups/<evento>/<desafio>/`.
+4. `npm run check` — frontmatter inválido (categoria errada, `author` faltando, data mal formatada)
+   quebra aqui antes mesmo de gerar o build.
+5. `npm run dev` e confira em `http://localhost:4321/pt/writeups/<evento-slug>/<desafio-slug>/`.
+6. Commit, push, PR. O workflow `CI` roda `astro check`, `format:check` e `build`. Depois do merge
+   em `main`, o `Deploy to GitHub Pages` publica sozinho.
 
 ## Deploy
 

@@ -51,12 +51,9 @@ const t = useTranslations(locale);
   const STORAGE_KEY = 'writeups-ctf:theme';
   const button = document.getElementById('theme-toggle');
 
+  // Escuro é o padrão do site: só "light" explícito (via toggle/localStorage) muda isso.
   function currentTheme(): 'light' | 'dark' {
-    return document.documentElement.dataset.theme === 'dark' ||
-      (!document.documentElement.dataset.theme &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches)
-      ? 'dark'
-      : 'light';
+    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
   }
 
   button?.addEventListener('click', () => {

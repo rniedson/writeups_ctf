@@ -14,9 +14,19 @@ const writeups = defineCollection({
     difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
-    author: z.string().default('g01x5'),
+    author: z.string(),
     draft: z.boolean().default(false),
   }),
 });
 
-export const collections = { writeups };
+// Páginas de documentação do próprio site (ex.: guia de como publicar um writeup).
+// id do loader = "<slug-do-guia>/<idioma>".
+const guides = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/guides' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+  }),
+});
+
+export const collections = { writeups, guides };

@@ -18,6 +18,7 @@ const t = useTranslations(locale);
     <a class="brand" href={localizedPath(locale)}>{t('site.title')}</a>
     <nav aria-label="main">
       <a href={localizedPath(locale)}>{t('nav.home')}</a>
+      <a href={localizedPath(locale, 'guide/')}>{t('nav.guide')}</a>
       <a href={localizedPath(locale, 'tags/')}>{t('nav.tags')}</a>
       <a href={localizedPath(locale, 'about/')}>{t('nav.about')}</a>
     </nav>

@@ -49,6 +49,11 @@ const events = [...eventCounts.entries()]
   .sort((a, b) => a[0].localeCompare(b[0]))
   .map(([value, count]) => ({ value, count }));
 
+const authorCounts = countBy(writeups.map((w) => w.entry.data.author));
+const authors = [...authorCounts.entries()]
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([value, count]) => ({ value, count }));
+
 const tagCounts = countBy(writeups.flatMap((w) => w.entry.data.tags));
 const tags = [...tagCounts.entries()]
   .sort((a, b) => a[0].localeCompare(b[0]))
@@ -136,6 +141,19 @@ const months = [...monthCounts.entries()]
                     <input type="checkbox" data-facet="event" value={e.value} />
                     <span>{e.value}</span>
                     <span class="filter-count">{e.count}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            {authors.length > 0 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.author')}</legend>
+                {authors.map((a) => (
+                  <label class="filter-option">
+                    <input type="checkbox" data-facet="author" value={a.value} />
+                    <span>{a.value}</span>
+                    <span class="filter-count">{a.count}</span>
                   </label>
                 ))}
               </fieldset>
@@ -253,6 +271,7 @@ const months = [...monthCounts.entries()]
       const selectedCategory = selectedByFacet('category');
       const selectedDifficulty = selectedByFacet('difficulty');
       const selectedEvent = selectedByFacet('event');
+      const selectedAuthor = selectedByFacet('author');
       const selectedMonth = selectedByFacet('month');
       const selectedTag = selectedByFacet('tag');
 
@@ -265,6 +284,8 @@ const months = [...monthCounts.entries()]
           selectedDifficulty.size === 0 || selectedDifficulty.has(card.dataset.difficulty ?? '');
         const matchesEvent =
           selectedEvent.size === 0 || selectedEvent.has(card.dataset.event ?? '');
+        const matchesAuthor =
+          selectedAuthor.size === 0 || selectedAuthor.has(card.dataset.author ?? '');
         const matchesMonth =
           selectedMonth.size === 0 || selectedMonth.has(card.dataset.month ?? '');
         const cardTags = (card.dataset.tags ?? '').split(' ');
@@ -275,6 +296,7 @@ const months = [...monthCounts.entries()]
           matchesCategory &&
           matchesDifficulty &&
           matchesEvent &&
+          matchesAuthor &&
           matchesMonth &&
           matchesTag;
         card.hidden = !matches;
