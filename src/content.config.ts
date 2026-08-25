@@ -10,6 +10,7 @@ const writeups = defineCollection({
     description: z.string(),
     event: z.string(),
     category: z.enum(['web', 'pwn', 'reverse', 'crypto', 'forensics', 'misc', 'osint', 'hardware']),
+    subcategory: z.string().optional(),
     tags: z.array(z.string()).default([]),
     difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
     pubDate: z.coerce.date(),

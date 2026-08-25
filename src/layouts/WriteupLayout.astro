@@ -23,8 +23,18 @@ interface Props {
 }
 const { locale, slug, entry, isFallback, headings } = Astro.props;
 const t = useTranslations(locale);
-const { title, description, event, category, difficulty, tags, pubDate, updatedDate, author } =
-  entry.data;
+const {
+  title,
+  description,
+  event,
+  category,
+  subcategory,
+  difficulty,
+  tags,
+  pubDate,
+  updatedDate,
+  author,
+} = entry.data;
 const pathWithoutLocale = `writeups/${slug}/`;
 const readingMinutes = estimateReadingMinutes(entry.body ?? '');
 const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
@@ -56,6 +66,7 @@ const ogImage = withBase(`/${locale}/writeups/${slug}.png`);
           <CategoryIcon category={category} />
           {category}
         </span>
+        {subcategory && <span class="badge">{subcategory}</span>}
         {difficulty && <DifficultyBadge locale={locale} difficulty={difficulty} />}
       </p>
 

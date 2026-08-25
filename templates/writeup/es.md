@@ -12,6 +12,12 @@ event: 'Nombre del CTF'
 # web | pwn | reverse | crypto | forensics | misc | osint | hardware
 category: 'web'
 
+# Subcategoría — opcional, texto libre. Es la clase de vulnerabilidad específica dentro de la
+# categoría (aparece agrupada por categoría en el filtro lateral: Web > IDOR, Web > XXE, Pwn > ROP...).
+# Usa un nombre corto y reconocible: IDOR, XXE, SSTI, JWT, Path Traversal, Buffer Overflow,
+# Format String, Heap Exploitation, RSA, etc. Si no aplica, borra esta línea.
+subcategory: 'IDOR'
+
 # Dificultad — opcional. Si no aplica, borra esta línea.
 # easy | medium | hard
 difficulty: 'easy'

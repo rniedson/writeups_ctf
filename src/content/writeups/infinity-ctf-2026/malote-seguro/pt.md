@@ -1,8 +1,9 @@
 ---
 title: 'Malote Seguro — Writeup completo'
-description: 'Use-after-free contra o safe-linking do glibc moderno: desmascarar um ponteiro ofuscado, sequestrar um callback de auditoria e disparar a flag. First blood do CTF.'
+description: '"Malote Seguro" promete segurança em dobro — no nome e numa proteção de memória do próprio sistema. As duas caíram juntas: um erro clássico de gerenciamento de memória bastou pra desmontar essa proteção e sequestrar o controle do programa.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'pwn'
+subcategory: 'Heap Exploitation'
 difficulty: 'hard'
 tags:
   - use-after-free
@@ -15,7 +16,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Pwn/Heap (root) · **Dificuldade:** Hard · **Pontos:** 800 · **First blood**
+> **Categoria:** Pwn/Heap (root) · **Dificuldade:** Hard · **Pontos:** 715 · **First blood**
 > **Vulnerabilidades:** Use-After-Free + bypass de safe-linking (glibc 2.36) → sequestro de callback
 > **Flag:** `flag{infinity_ctf_2026_malote_86a037fcc0}` (fixa nesta instância — o formato varia por desafio)
 
@@ -34,8 +35,9 @@ dinamicamente (heap) — e a versão do glibc em uso (2.36) já vem com **safe-l
 específica contra o tipo de ataque que vamos fazer aqui.
 
 > [!NOTE/O que é safe-linking, rapidamente]
-> Antes do safe-linking, listas de blocos de heap livres (`tcache`/`fastbin`) guardavam o ponteiro
-> pro **próximo bloco livre** em texto puro — se um bug (tipo Use-After-Free) deixasse o atacante
+> Antes do safe-linking, listas de blocos de heap livres (`tcache`/`fastbin` — estruturas internas do
+> glibc que guardam, numa lista encadeada, os blocos que já foram liberados e podem ser reaproveitados
+> na próxima alocação) guardavam o ponteiro pro **próximo bloco livre** em texto puro — se um bug (tipo Use-After-Free) deixasse o atacante
 > editar esse ponteiro, dava pra apontar a próxima alocação pra **qualquer endereço de memória**. O
 > safe-linking ofusca esse ponteiro com XOR contra a própria posição dele na memória
 > (`ponteiro_real XOR (endereço_do_slot >> 12)`), então editar o ponteiro "às cegas" corrompe tudo —
@@ -73,7 +75,9 @@ Com o UAF confirmado, o plano de ataque em heap moderno com safe-linking segue u
    bloco) — e como o "próximo livre" foi trocado no passo 3, o **próximo** `cadastrar` depois deste
    vai entregar um bloco de memória que na verdade é o endereço de `audit_cb`.
 5. **Cadastrar mais um item, com o campo "nome" igual aos bytes de `0x4012fb`** (o endereço da função
-   `imprimir_flag` do próprio binário, em little-endian: `\xfb\x12\x40`). Como esse cadastro está
+   `imprimir_flag` do próprio binário, escrito em **little-endian** — a ordem em que processadores
+   x86-64 armazenam bytes na memória, do byte menos significativo para o mais significativo, então o
+   número `0x4012fb` vira os bytes `\xfb\x12\x40` em sequência). Como esse cadastro está
    escrevendo dentro do slot que É o `audit_cb`, o `strncpy` do nome sobrescreve o próprio callback
    com o endereço de `imprimir_flag`.
 
@@ -114,9 +118,12 @@ flag{infinity_ctf_2026_malote_86a037fcc0}
 - **Safe-linking não é infalível — só exige um leak antes.** A mitigação assume que o atacante não
   sabe o endereço do slot; como o programa vazava esse endereço na hora de cadastrar, a ofuscação
   virou reversível.
-- **Sequestrar um callback (function pointer) é geralmente mais direto que sequestrar `rip` via
-  pilha.** Se o programa já chama algo do tipo `(*callback)()` em algum ponto, esse ponteiro é um
-  alvo natural para heap exploitation — não precisa de ROP nenhum.
+- **Sequestrar um callback (function pointer, um ponteiro que o programa guarda e depois chama como
+  função) é geralmente mais direto que sequestrar `rip` (o registrador que guarda qual instrução o
+  processador vai executar em seguida) via pilha.** Se o programa já chama algo do tipo
+  `(*callback)()` em algum ponto, esse ponteiro é um alvo natural para heap exploitation — não
+  precisa de ROP (Return-Oriented Programming, a técnica de encadear pedaços de código já existentes
+  no binário para montar uma execução arbitrária) nenhum.
 - Correção: zerar blocos ao liberar (`explicit_bzero` antes do `free`), e não expor endereços de heap
   em nenhuma resposta ao usuário.
 

@@ -1,8 +1,9 @@
 ---
 title: 'Pauta — Writeup completo'
-description: 'Um unpickler restrito ainda executa código via __setstate__ — e quando a resposta não vaza nada, dá pra sequestrar json.dumps no próprio processo pra exfiltrar a flag.'
+description: '"Pauta" era pra ser a regra que restringe o que pode ser recarregado na memória do programa — só que a regra checava apenas QUEM estava sendo carregado, nunca O QUE esse alguém fazia ao ser carregado, e essa brecha foi suficiente pra rodar comandos no servidor.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'web'
+subcategory: 'Deserialização'
 difficulty: 'hard'
 tags:
   - pickle
@@ -15,8 +16,9 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Web/Deserialização (root) · **Dificuldade:** Hard · **Pontos:** 800
-> **Vulnerabilidades:** Desserialização insegura de pickle (RCE) com exfiltração via monkeypatch de `json.dumps`
+> **Categoria:** Web/Deserialização (root) · **Dificuldade:** Hard · **Pontos:** 696
+> **Vulnerabilidades:** Desserialização insegura de pickle (RCE — Remote Code Execution, execução de
+> código arbitrário no servidor) com exfiltração via monkeypatch de `json.dumps`
 > **Flag:** `flag{infinity_ctf_2026_pauta_eb84b93970}` (fixa nesta instância — o formato varia por desafio)
 
 Pauta é um desafio de desserialização Python: o `pickle` do padrão da linguagem, quando desserializa
@@ -79,8 +81,10 @@ sempre fixo, sem eco de nada. Sem canal óbvio de exfiltração:
 - O namespace do `exec` não tinha `self` disponível, e a instrução `import` (statement) quebrava
   dentro dele — só `__import__(...)` funcionava como chamada.
 
-A solução foi **fazer o próprio processo vazar a flag na resposta seguinte**, sequestrando a função
-que monta o JSON de saída:
+A solução foi **fazer o próprio processo vazar a flag na resposta seguinte**, usando uma técnica
+chamada monkeypatch — trocar, em tempo de execução, uma função já carregada na memória do processo
+por uma versão sua, sem alterar o código-fonte original. Aqui, o alvo foi a própria função que monta
+o JSON de saída:
 
 ```python
 codigo_python = """

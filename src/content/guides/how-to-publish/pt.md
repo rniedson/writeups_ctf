@@ -49,17 +49,18 @@ aviso de "tradução pendente".
 Cada arquivo `.md` começa com um bloco de metadados entre `---`. O modelo já vem com um comentário
 explicando cada campo — os principais são:
 
-| Campo         | O que é                                                                       |
-| ------------- | ----------------------------------------------------------------------------- |
-| `title`       | Título exibido no site                                                        |
-| `description` | Resumo de 1-2 frases (aparece no card e ao compartilhar)                      |
-| `event`       | Nome do CTF/plataforma — vira o filtro "Organizadora"                         |
-| `category`    | `web`, `pwn`, `reverse`, `crypto`, `forensics`, `misc`, `osint` ou `hardware` |
-| `difficulty`  | `easy`, `medium` ou `hard` (opcional)                                         |
-| `tags`        | Lista livre de temas — viram o filtro "Tema"                                  |
-| `pubDate`     | Data de publicação (`AAAA-MM-DD`)                                             |
-| `author`      | Seu nome — campo obrigatório, aparece no filtro "Autor"                       |
-| `draft`       | `true` esconde o writeup do site até você trocar pra `false`                  |
+| Campo         | O que é                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | Título exibido no site                                                                                                                                          |
+| `description` | Resumo de 1-2 frases (aparece no card e ao compartilhar)                                                                                                        |
+| `event`       | Nome do CTF/plataforma — vira o filtro "Organizadora"                                                                                                           |
+| `category`    | `web`, `pwn`, `reverse`, `crypto`, `forensics`, `misc`, `osint` ou `hardware`                                                                                   |
+| `subcategory` | Classe de vulnerabilidade dentro da categoria — texto livre, ex.: `IDOR`, `XXE`, `SSTI`, `JWT` (opcional, vira o filtro "Subcategoria", agrupado por categoria) |
+| `difficulty`  | `easy`, `medium` ou `hard` (opcional)                                                                                                                           |
+| `tags`        | Lista livre de temas — viram o filtro "Tema"                                                                                                                    |
+| `pubDate`     | Data de publicação (`AAAA-MM-DD`)                                                                                                                               |
+| `author`      | Seu nome — campo obrigatório, aparece no filtro "Autor"                                                                                                         |
+| `draft`       | `true` esconde o writeup do site até você trocar pra `false`                                                                                                    |
 
 > [!IMPORTANT/Frontmatter inválido quebra a build]
 > Se `category` tiver um valor fora da lista, ou faltar um campo obrigatório como `author`, o build

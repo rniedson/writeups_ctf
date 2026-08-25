@@ -50,17 +50,18 @@ esa ruta, con un aviso de "traducción pendiente".
 Cada archivo `.md` empieza con un bloque de metadatos entre `---`. La plantilla ya trae un
 comentario explicando cada campo — los principales son:
 
-| Campo         | Qué es                                                                       |
-| ------------- | ---------------------------------------------------------------------------- |
-| `title`       | Título mostrado en el sitio                                                  |
-| `description` | Resumen de 1-2 frases (aparece en la tarjeta y al compartir)                 |
-| `event`       | Nombre del CTF/plataforma — se convierte en el filtro "Organizadora"         |
-| `category`    | `web`, `pwn`, `reverse`, `crypto`, `forensics`, `misc`, `osint` o `hardware` |
-| `difficulty`  | `easy`, `medium` o `hard` (opcional)                                         |
-| `tags`        | Lista libre de temas — se convierten en el filtro "Tema"                     |
-| `pubDate`     | Fecha de publicación (`AAAA-MM-DD`)                                          |
-| `author`      | Tu nombre — campo obligatorio, aparece en el filtro "Autor"                  |
-| `draft`       | `true` oculta el writeup del sitio hasta que lo cambies a `false`            |
+| Campo         | Qué es                                                                                                                                                                       |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | Título mostrado en el sitio                                                                                                                                                  |
+| `description` | Resumen de 1-2 frases (aparece en la tarjeta y al compartir)                                                                                                                 |
+| `event`       | Nombre del CTF/plataforma — se convierte en el filtro "Organizadora"                                                                                                         |
+| `category`    | `web`, `pwn`, `reverse`, `crypto`, `forensics`, `misc`, `osint` o `hardware`                                                                                                 |
+| `subcategory` | Clase de vulnerabilidad dentro de la categoría — texto libre, ej.: `IDOR`, `XXE`, `SSTI`, `JWT` (opcional, se convierte en el filtro "Subcategoría", agrupado por categoría) |
+| `difficulty`  | `easy`, `medium` o `hard` (opcional)                                                                                                                                         |
+| `tags`        | Lista libre de temas — se convierten en el filtro "Tema"                                                                                                                     |
+| `pubDate`     | Fecha de publicación (`AAAA-MM-DD`)                                                                                                                                          |
+| `author`      | Tu nombre — campo obligatorio, aparece en el filtro "Autor"                                                                                                                  |
+| `draft`       | `true` oculta el writeup del sitio hasta que lo cambies a `false`                                                                                                            |
 
 > [!IMPORTANT/Un frontmatter inválido rompe el build]
 > Si `category` tiene un valor fuera de la lista, o falta un campo obligatorio como `author`, el

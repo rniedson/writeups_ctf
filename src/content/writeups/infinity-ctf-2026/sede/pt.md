@@ -1,8 +1,9 @@
 ---
 title: 'Sede — Writeup completo'
-description: 'O desafio de maior pontuação do CTF: um bypass de autorização entre duas camadas de infraestrutura que discordam sobre como interpretar um path com "../" codificado.'
+description: 'Por que "Sede"? Porque o alvo final é literalmente a matriz de uma empresa que você nunca deveria acessar — chegando lá ao explorar uma discordância entre a portaria que checa sua identidade e o corredor interno que decide pra onde você realmente vai.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'web'
+subcategory: 'Path Traversal'
 difficulty: 'hard'
 tags:
   - path-traversal
@@ -15,7 +16,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Web (pivoting) · **Dificuldade:** Hard · **Pontos:** 1000 (o mais alto do CTF)
+> **Categoria:** Web (pivoting) · **Dificuldade:** Hard · **Pontos:** 976 (o mais alto entre os desafios que resolvemos)
 > **Vulnerabilidades:** Confusão de path entre borda e roteador interno → bypass de isolamento entre empresas
 > **Flag:** `flag{infinity_ctf_2026_sede_e85ea669ac}`
 

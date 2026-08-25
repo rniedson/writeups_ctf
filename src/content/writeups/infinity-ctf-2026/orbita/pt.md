@@ -1,8 +1,9 @@
 ---
 title: 'Orbita — Writeup completo'
-description: 'Format string vaza o endereço de system() e um segundo overflow encadeia um ROP até a shell, no clássico "achar dois bugs e juntar" de CTF de pwn.'
+description: '"Órbita" é algo que sobe e depois volta: uma primeira falha faz o sistema revelar, sem querer, um endereço interno de memória; uma segunda falha usa exatamente esse endereço pra assumir o controle do programa.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'pwn'
+subcategory: 'ROP'
 difficulty: 'hard'
 tags:
   - format-string
@@ -15,7 +16,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Pwn (root) · **Dificuldade:** Hard · **Pontos:** 800
+> **Categoria:** Pwn (root) · **Dificuldade:** Hard · **Pontos:** 662
 > **Vulnerabilidades:** Format string (leak de endereço) → overflow de pilha → ROP para `system("/bin/sh")`
 > **Flag:** `flag{infinity_ctf_2026_orbita_6d649a9471}` (fixa nesta instância — o formato varia por desafio)
 
@@ -29,14 +30,29 @@ completa.
 ## 1. Contexto
 
 O binário do Orbita segue o "padrão da família" que apareceu em vários desafios `root` deste CTF:
-No-PIE, NX ligado, sem canário de pilha, RELRO parcial. Isso já diz muito antes de qualquer
-engenharia reversa:
+No-PIE, NX ligado, sem canário de pilha, RELRO parcial. Essas quatro siglas são só nomes para
+proteções de segurança que um binário pode (ou não) ter ligadas na hora da compilação — e saber
+quais estão ausentes já diz muito antes de qualquer engenharia reversa:
 
-- **No-PIE** → todo endereço de função no binário é fixo, igual em toda execução. Não precisa vazar
-  a base do binário, só usar os endereços direto do `objdump`/`readelf`.
-- **Sem canário** → não existe proteção contra overflow de pilha sobrescrever o endereço de retorno.
-- **NX ligado** → não dá pra injetar shellcode e executar direto na pilha; a exploração precisa ser
-  ROP (reaproveitar código já existente no binário) ou `ret2libc`.
+- **PIE** (Position-Independent Executable) faria o binário carregar em um endereço de memória
+  diferente a cada execução, como uma versão de ASLR para o próprio código do programa (não só para
+  bibliotecas). **No-PIE** significa que essa proteção está desligada: todo endereço de função no
+  binário é fixo, igual em toda execução. Não precisa vazar a base do binário, só usar os endereços
+  direto do `objdump`/`readelf`.
+- **Canário de pilha** é um valor secreto colocado entre as variáveis locais e o endereço de retorno;
+  se um overflow sobrescrever esse valor, o programa percebe e aborta antes de desviar a execução.
+  **Sem canário** significa que essa checagem não existe: um overflow de pilha pode sobrescrever o
+  endereço de retorno sem ser detectado.
+- **NX** (No-eXecute) é a proteção que marca a pilha como "não executável" — mesmo que você consiga
+  escrever código malicioso ali, o processador se recusa a rodá-lo. **NX ligado** aqui significa que
+  não dá pra simplesmente injetar shellcode e executar direto na pilha; a exploração precisa reusar
+  código que já existe dentro do próprio binário — a técnica chamada ROP (Return-Oriented
+  Programming, encadear pequenos trechos de código já existentes, chamados "gadgets", para montar uma
+  chamada de função inteira) — ou usar `ret2libc` (pular direto para uma função já pronta na
+  biblioteca padrão do sistema, como `system`).
+- **RELRO** (RELocation Read-Only) protege certas tabelas internas do binário contra sobrescrita
+  depois que o programa termina de carregar; aqui está só "parcial", o que deixa margem para algumas
+  técnicas de exploração que não foram necessárias neste caso.
 
 O serviço tem pelo menos dois comandos relevantes: um `handshake` inicial e um comando
 `telemetria`. A ideia do nome do desafio ("órbita") sugere algo que "sobe" e depois "reentra" — o
@@ -63,10 +79,15 @@ de volta, e não só ecoada verbatim.
 O handshake confirmou o padrão de format string. Como o binário é No-PIE, o objetivo natural é vazar
 o endereço de uma função da libc (por exemplo `system`) para depois pular pra ela.
 
-A técnica usada aqui foi vazar o endereço via **GOT resolvido por `dlsym`** — ou seja, o programa já
-tinha, em algum ponto da pilha, o endereço real de `system` carregado dinamicamente. Variando o
-índice do especificador posicional (`%N$p`), o índice **6** deu o buffer de entrada (confirmando o
-offset do format string), e o índice **24** (`%24$p`) devolveu o endereço de `system` na libc.
+Quando um binário usa bibliotecas dinâmicas (como a `libc`, a biblioteca padrão do C), ele mantém uma
+tabela interna chamada **GOT** (Global Offset Table) que guarda o endereço real de cada função
+externa — endereço esse que só é descoberto em tempo de execução, por uma rotina interna chamada
+`dlsym`. Ou seja: em algum ponto da pilha, o programa já tinha o endereço verdadeiro de `system`
+guardado, resolvido dinamicamente pelo próprio processo — e um leak de format string consegue ler
+esse valor como qualquer outro dado da pilha. Variando o índice do especificador posicional
+(`%N$p`, onde `N` é a posição do argumento que você quer ler), o índice **6** deu o buffer de entrada
+(confirmando o offset do format string), e o índice **24** (`%24$p`) devolveu o endereço de `system`
+na libc.
 
 ```text
 entrada:  %24$p
@@ -89,8 +110,8 @@ O padding até o endereço de retorno salvo foi de **72 bytes** (64 do buffer + 
 mesmo padrão 64→72 que se repetiu em outros binários desta família de desafios). Depois dos 72 bytes,
 o próximo qword na pilha é o endereço de retorno.
 
-A cadeia ROP (Return-Oriented Programming) monta uma chamada equivalente a `system("/bin/sh")`
-usando só pedaços de código já existentes no binário:
+A cadeia ROP monta uma chamada equivalente a `system("/bin/sh")` encadeando gadgets já existentes no
+binário:
 
 ```text
 payload = b"A" * 72
@@ -100,12 +121,15 @@ payload = b"A" * 72
         + p64(system_addr)      # endereço vazado no passo 3 (%24$p)
 ```
 
-- `pop_rdi_ret` carrega o primeiro argumento da chamada (`rdi`) com o endereço de `"/bin/sh"` e
-  devolve o controle pro próximo endereço da pilha.
+- Em x86-64 Linux, o primeiro argumento de uma chamada de função vai sempre no registrador `rdi` (é
+  parte da convenção de chamada da arquitetura — a "regra combinada" de onde cada argumento deve
+  estar antes de uma função ser chamada). O gadget `pop_rdi_ret` (um trecho de código já existente no
+  binário que faz `pop rdi; ret`) tira o próximo valor da pilha e coloca dentro de `rdi` — nesse caso,
+  o endereço de `"/bin/sh"` — e então continua a execução no próximo endereço da pilha.
 - O `ret` solto antes de `system` não faz nada funcionalmente — só consome 8 bytes da pilha para
-  **realinhar `rsp` em um múltiplo de 16**, exigência da ABI x86-64 para chamadas de função que usam
-  instruções `movaps` internamente (a `system` da libc usa). Sem esse alinhamento, a chamada
-  crasha antes de completar.
+  **realinhar `rsp` (o ponteiro de topo da pilha) em um múltiplo de 16**, uma exigência da convenção
+  de chamada x86-64 para funções que usam instruções `movaps` internamente (a `system` da libc usa).
+  Sem esse alinhamento, a chamada crasha antes de completar.
 - Por fim, `system_addr` é o endereço vazado no handshake — chamado com `"/bin/sh"` em `rdi`, abre
   uma shell.
 

@@ -50,17 +50,18 @@ with a "translation pending" notice.
 Each `.md` file starts with a metadata block between `---`. The template already has a comment
 explaining every field — the main ones are:
 
-| Field         | What it is                                                                    |
-| ------------- | ----------------------------------------------------------------------------- |
-| `title`       | Title shown on the site                                                       |
-| `description` | 1-2 sentence summary (shown on the card and when shared)                      |
-| `event`       | CTF/platform name — becomes the "Organizer" filter                            |
-| `category`    | `web`, `pwn`, `reverse`, `crypto`, `forensics`, `misc`, `osint` or `hardware` |
-| `difficulty`  | `easy`, `medium` or `hard` (optional)                                         |
-| `tags`        | Free-form list of topics — become the "Topic" filter                          |
-| `pubDate`     | Publish date (`YYYY-MM-DD`)                                                   |
-| `author`      | Your name — required field, shows up in the "Author" filter                   |
-| `draft`       | `true` hides the writeup from the site until you flip it to `false`           |
+| Field         | What it is                                                                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`       | Title shown on the site                                                                                                                                  |
+| `description` | 1-2 sentence summary (shown on the card and when shared)                                                                                                 |
+| `event`       | CTF/platform name — becomes the "Organizer" filter                                                                                                       |
+| `category`    | `web`, `pwn`, `reverse`, `crypto`, `forensics`, `misc`, `osint` or `hardware`                                                                            |
+| `subcategory` | Vulnerability class within the category — free text, e.g. `IDOR`, `XXE`, `SSTI`, `JWT` (optional, becomes the "Subcategory" filter, grouped by category) |
+| `difficulty`  | `easy`, `medium` or `hard` (optional)                                                                                                                    |
+| `tags`        | Free-form list of topics — become the "Topic" filter                                                                                                     |
+| `pubDate`     | Publish date (`YYYY-MM-DD`)                                                                                                                              |
+| `author`      | Your name — required field, shows up in the "Author" filter                                                                                              |
+| `draft`       | `true` hides the writeup from the site until you flip it to `false`                                                                                      |
 
 > [!IMPORTANT/Invalid frontmatter breaks the build]
 > If `category` has a value outside the list, or a required field like `author` is missing, the

@@ -1,8 +1,9 @@
 ---
 title: 'Comporta — Writeup completo'
-description: 'Overflow de pilha clássico com um ret2win direto — sem ROP, sem libc, só sobrescrever o retorno com a função que já resolve o desafio.'
+description: '"Comporta" é a metáfora perfeita: a represa que devia conter os dados transborda, e a correnteza vai parar exatamente no lugar da memória do programa que decide o que executar em seguida.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'pwn'
+subcategory: 'Buffer Overflow'
 difficulty: 'hard'
 tags:
   - buffer-overflow
@@ -14,22 +15,54 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Pwn (root) · **Dificuldade:** Hard · **Pontos:** 800
+> **Categoria:** Pwn (root) · **Dificuldade:** Hard · **Pontos:** 662
 > **Vulnerabilidades:** Buffer overflow de pilha → ret2win direto (sem ROP de libc)
 > **Flag:** `flag{infinity_ctf_2026_comporta_7185bb7617}` (fixa nesta instância — o formato varia por desafio)
 
 Se o [Orbita](/pt/writeups/infinity-ctf-2026/orbita/) precisou de duas vulnerabilidades encadeadas,
-o Comporta é o caso mais simples possível de overflow de pilha: o próprio binário já tem uma função
-que resolve o desafio, e o único trabalho é convencer o programa a pular pra ela.
+o Comporta é o caso mais simples possível de **buffer overflow de pilha** — uma das falhas mais
+clássicas de segurança em programas escritos em C/C++, que acontece quando o programa copia dados do
+usuário para um espaço de memória de tamanho fixo (um "buffer") sem checar se os dados cabem ali.
+Se o programa não limitar o tamanho, dados demais "transbordam" (_overflow_) o buffer e sobrescrevem
+o que vem logo depois dele na memória — nesse caso, informação de controle da própria execução do
+programa. Aqui, o próprio binário já tem uma função que resolve o desafio, e o único trabalho é
+convencer o programa a pular pra ela.
+
+> [!NOTE/Por que sobrescrever memória faz o programa "pular" para outro lugar?]
+> Toda vez que uma função é chamada, o processador guarda numa área de memória chamada **pilha**
+> (_stack_) o **endereço de retorno**: o ponto exato do código para onde a execução deve voltar
+> quando aquela função terminar. Esse endereço fica guardado logo depois do espaço reservado para as
+> variáveis locais da função — inclusive logo depois de qualquer buffer local. Se um overflow
+> escrever dados demais nesse buffer, ele acaba sobrescrevendo o endereço de retorno também. Quando a
+> função termina, o processador não volta para onde deveria — ele "retorna" para o endereço que o
+> atacante escreveu ali. Essa técnica, de escolher esse endereço para apontar direto a uma função que
+> já resolve o desafio (em vez de construir um exploit mais complexo), é chamada de **ret2win**
+> ("return to win").
 
 ---
 
 ## 1. Contexto
 
-Mesma "família" de binário dos outros desafios `root` deste CTF: No-PIE, sem canário, NX ligado,
-Partial RELRO. O serviço expõe um comando `processar_comando` que recebe dados do usuário — e o
-próprio nome do desafio ("abrir a comporta") sugere que existe, em algum lugar do binário, uma
-função literal chamada algo como `abrir_comporta`.
+Mesma "família" de binário dos outros desafios `root` deste CTF — todos compilados com as mesmas
+proteções (ou falta delas), que dá pra checar com uma ferramenta como `checksec`:
+
+- **No-PIE**: o executável sempre carrega no MESMO endereço de memória, toda vez que roda (sem essa
+  proteção, o sistema operacional randomizaria essa base a cada execução). Isso importa muito aqui,
+  porque significa que um endereço de função descoberto uma vez (como o de `abrir_comporta`) vai ser
+  válido em qualquer execução nova do mesmo binário.
+- **Sem canário de pilha**: um "canário" é um valor secreto colocado entre o buffer e o endereço de
+  retorno, que o programa confere antes de retornar — se o valor mudou, é sinal de overflow, e o
+  programa aborta em vez de seguir com um endereço de retorno corrompido. Sem essa proteção, o
+  overflow simplesmente funciona sem alarme nenhum.
+- **NX ligado** (_No-eXecute_): a pilha não pode conter código executável — então não dá pra simplesmente
+  escrever um shellcode no buffer e pular pra ele; o endereço de retorno precisa apontar para código
+  que já existe no binário (como é o caso aqui).
+- **Partial RELRO**: uma proteção parcial de outra estrutura de memória, que não é relevante para
+  este exploit específico.
+
+O serviço expõe um comando `processar_comando` que recebe dados do usuário — e o próprio nome do
+desafio ("abrir a comporta") sugere que existe, em algum lugar do binário, uma função literal
+chamada algo como `abrir_comporta`.
 
 ## 2. Reconhecimento
 
@@ -65,6 +98,16 @@ payload = b"A" * 72
         + p64(0x436f6d706f727441)   # valor MAGIC esperado — bytes ASCII de "ComportA"
         + p64(abrir_comporta)       # 0x401236
 ```
+
+`abrir_comporta` espera receber o valor mágico como argumento, e em Linux x86-64 o primeiro
+argumento de uma função é passado no registrador `rdi` — não dá pra simplesmente "passar um
+argumento" a partir de um endereço de retorno sobrescrito, então o exploit usa um **gadget**: um
+pequeno trecho de instruções que já existe dentro do próprio binário (aqui, `pop rdi; ret` —
+"tire o topo da pilha e coloque em `rdi`, depois retorne") e que é reaproveitado fora de contexto.
+Encadeando endereços de retorno um atrás do outro (`pop_rdi_ret` → valor mágico → `abrir_comporta`),
+o programa primeiro carrega o valor certo em `rdi` e só depois pula pra função — é uma versão mínima
+da técnica chamada **ROP** (_Return-Oriented Programming_), que no Orbita precisa de vários gadgets
+encadeados e aqui usa só um.
 
 O valor mágico `0x436f6d706f727441` não é aleatório: decodificado como bytes ASCII (pouco-endian),
 ele soletra literalmente **"ComportA"** — uma checagem "estética" plantada de propósito no desafio,

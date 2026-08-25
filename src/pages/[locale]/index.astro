@@ -27,6 +27,22 @@ const categories = CATEGORIES.filter((c) => categoryCounts.has(c)).map((c) => ({
   count: categoryCounts.get(c) ?? 0,
 }));
 
+// Subcategoria: agrupada por categoria (ex.: Web > IDOR, Web > XXE, Pwn > ROP...).
+const subcategoryCounts = countBy(
+  writeups
+    .filter((w) => w.entry.data.subcategory)
+    .map((w) => `${w.entry.data.category}::${w.entry.data.subcategory}`),
+);
+const subcategoriesByCategory = categories
+  .map((c) => ({
+    category: c.value,
+    items: [...subcategoryCounts.entries()]
+      .filter(([key]) => key.startsWith(`${c.value}::`))
+      .map(([key, count]) => ({ value: key.split('::')[1], count }))
+      .sort((a, b) => a.value.localeCompare(b.value)),
+  }))
+  .filter((group) => group.items.length > 0);
+
 const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'] as const;
 const difficultyLabelKeys: Record<(typeof DIFFICULTY_ORDER)[number], UiKey> = {
   easy: 'difficulty.easy',
@@ -116,6 +132,27 @@ const months = [...monthCounts.entries()]
                     <span>{c.value}</span>
                     <span class="filter-count">{c.count}</span>
                   </label>
+                ))}
+              </fieldset>
+            )}
+
+            {subcategoriesByCategory.length > 0 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.subcategory')}</legend>
+                {subcategoriesByCategory.map((group) => (
+                  <div class="filter-subgroup">
+                    <p class="filter-subgroup-label">
+                      <CategoryIcon category={group.category} size={12} />
+                      {group.category}
+                    </p>
+                    {group.items.map((sc) => (
+                      <label class="filter-option filter-option-nested">
+                        <input type="checkbox" data-facet="subcategory" value={sc.value} />
+                        <span>{sc.value}</span>
+                        <span class="filter-count">{sc.count}</span>
+                      </label>
+                    ))}
+                  </div>
                 ))}
               </fieldset>
             )}
@@ -269,6 +306,7 @@ const months = [...monthCounts.entries()]
     function applyFilters() {
       const query = (searchInput?.value ?? '').trim().toLowerCase();
       const selectedCategory = selectedByFacet('category');
+      const selectedSubcategory = selectedByFacet('subcategory');
       const selectedDifficulty = selectedByFacet('difficulty');
       const selectedEvent = selectedByFacet('event');
       const selectedAuthor = selectedByFacet('author');
@@ -280,6 +318,8 @@ const months = [...monthCounts.entries()]
         const matchesSearch = !query || (card.dataset.search ?? '').includes(query);
         const matchesCategory =
           selectedCategory.size === 0 || selectedCategory.has(card.dataset.category ?? '');
+        const matchesSubcategory =
+          selectedSubcategory.size === 0 || selectedSubcategory.has(card.dataset.subcategory ?? '');
         const matchesDifficulty =
           selectedDifficulty.size === 0 || selectedDifficulty.has(card.dataset.difficulty ?? '');
         const matchesEvent =
@@ -294,6 +334,7 @@ const months = [...monthCounts.entries()]
         const matches =
           matchesSearch &&
           matchesCategory &&
+          matchesSubcategory &&
           matchesDifficulty &&
           matchesEvent &&
           matchesAuthor &&
@@ -405,6 +446,29 @@ const months = [...monthCounts.entries()]
   .filter-option input {
     accent-color: var(--color-accent);
     flex-shrink: 0;
+  }
+
+  .filter-subgroup {
+    margin-bottom: 0.5rem;
+  }
+
+  .filter-subgroup:last-child {
+    margin-bottom: 0;
+  }
+
+  .filter-subgroup-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: capitalize;
+  }
+
+  .filter-option-nested {
+    padding-left: 1.1rem;
   }
 
   .filter-count {

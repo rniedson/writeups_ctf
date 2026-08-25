@@ -1,8 +1,9 @@
 ---
 title: 'Moldura — Writeup completo'
-description: 'SSTI em Jinja2 sem sandbox: mesmo com __import__ bloqueado, a cadeia __subclasses__() dá execução remota de comandos completa a partir de uma string vazia.'
+description: 'Uma "moldura" devia só emoldurar seu texto numa pré-visualização — mas aqui o sistema tratou o que você digitou como parte de si mesmo, executando em vez de simplesmente exibir, o que abriu caminho pro controle total do servidor.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'web'
+subcategory: 'SSTI'
 difficulty: 'medium'
 tags:
   - ssti
@@ -15,7 +16,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 325
+> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 301
 > **Vulnerabilidades:** Server-Side Template Injection (SSTI) em Jinja2 sem sandbox, `__import__` bloqueado mas `__subclasses__()` livre
 > **Flag:** `flag{infinity_ctf_2026_moldura_5b8b37c55b}`
 
@@ -94,9 +95,12 @@ Python/bibliotecas carregadas):
 [c for c in ''.__class__.__mro__[1].__subclasses__() if c.__name__ == '_wrap_close']
 ```
 
-Uma vez achada essa classe, seu `__init__` tem acesso, via `__globals__`, ao módulo `os` inteiro
-(porque é assim que o `subprocess`/`os.popen` está implementado internamente) — dali dá pra chamar
-`popen` diretamente e ler a saída de um comando:
+Uma vez achada essa classe, seu método `__init__` (o construtor, chamado toda vez que uma instância
+dessa classe é criada) tem um atributo especial chamado `__globals__`: um dicionário com todas as
+variáveis globais visíveis de dentro do módulo onde aquela função foi definida — inclusive os módulos
+que esse módulo importou. Como `_wrap_close` faz parte da implementação interna do `subprocess`, o
+próprio módulo `os` está disponível dentro desse `__globals__`, pronto pra ser usado — dali dá pra
+chamar `popen` diretamente e ler a saída de um comando:
 
 ```
 {{ [c for c in ''.__class__.__mro__[1].__subclasses__() if c.__name__=='_wrap_close']
@@ -108,26 +112,63 @@ navegação de atributos que já existiam carregados no processo.
 
 ## 5. Capturando a flag
 
-Trocando o comando de teste (`id`) por algo que lê a flag do sistema de arquivos ou de uma variável
-de ambiente, a resposta renderizada trouxe:
+O comando `id` já respondeu (`uid=0(root) ...`) — o processo da aplicação rodava como **root**, o
+que significa que qualquer comando executado através do SSTI tem acesso irrestrito ao sistema, não
+só ao contexto da aplicação. Nesse desafio, a flag estava disponível diretamente como uma variável de
+ambiente do processo (`RCTF_FLAG`), então o comando final foi simplesmente ler o ambiente ao invés de
+`id`:
+
+```
+{{ [c for c in ''.__class__.__mro__[1].__subclasses__() if c.__name__=='_wrap_close']
+   [0].__init__.__globals__['popen']('env').read() }}
+```
+
+A saída renderizada trouxe a flag:
 
 ```
 flag{infinity_ctf_2026_moldura_5b8b37c55b}
 ```
 
-## 6. Lições
+> [!IMPORTANT/Rodar como root multiplica o dano]
+> A vulnerabilidade em si (SSTI sem sandbox) já seria grave rodando como qualquer usuário. Rodar o
+> processo como `root` transforma "executo comandos" em "controlo o sistema operacional inteiro" —
+> outro lembrete de que **princípio do menor privilégio** (nunca rodar um serviço voltado à internet
+> com mais permissão do que ele estritamente precisa) é uma camada de defesa independente da
+> correção do bug em si.
 
-- **Bloquear palavras-chave (`import`, `__import__`, `eval`, `exec`) não é sandboxing.** A superfície
-  real de um motor de templates sem sandbox de verdade é toda a introspecção da linguagem —
-  `__class__`, `__mro__`, `__subclasses__()` — que não usa nenhuma dessas palavras.
-- **A defesa correta contra SSTI em Jinja2 é usar um ambiente com `autoescape` e, mais importante,
-  rodar o template num `SandboxedEnvironment` de verdade** (o próprio Jinja2 oferece isso), que
-  restringe o acesso a atributos perigosos como `__class__`/`__globals__` — em vez de tentar prever e
-  bloquear cada payload individualmente.
-- **A melhor defesa de todas é não deixar entrada do usuário virar sintaxe de template.** Se o
-  objetivo é só personalizar um texto com o nome do usuário, um `.format()` simples ou f-string com
-  valores já resolvidos (nunca a entrada crua) evita a classe inteira de vulnerabilidade — não tem
-  motivo pra Jinja2 avaliar código dentro do campo `nome`.
+## 6. Por que a aplicação era vulnerável (e como corrigir)
+
+A causa raiz é deixar a entrada do usuário ser **avaliada como código de template** em vez de
+tratada como dado inerte, combinada com uma tentativa de sandboxing feita por lista negra de
+palavras-chave (fácil de contornar) em vez de uma restrição estrutural de verdade.
+
+1. **Bloquear palavras-chave (`import`, `__import__`, `eval`, `exec`) não é sandboxing.** A
+   superfície real de um motor de templates sem sandbox de verdade é toda a introspecção da
+   linguagem — `__class__`, `__mro__`, `__subclasses__()` — que não usa nenhuma dessas palavras.
+2. **A defesa correta contra SSTI em Jinja2 é rodar o template num `SandboxedEnvironment` de
+   verdade** (o próprio Jinja2 oferece isso), que restringe o acesso a atributos perigosos como
+   `__class__`/`__globals__` — em vez de tentar prever e bloquear cada payload individualmente. Um
+   ambiente com `autoescape` ligado ajuda contra XSS na saída, mas isso é uma camada diferente — não
+   substitui o sandboxing da avaliação do template em si.
+3. **A melhor defesa de todas é não deixar entrada do usuário virar sintaxe de template.** Se o
+   objetivo é só personalizar um texto com o nome do usuário, um `.format()` simples ou f-string com
+   valores já resolvidos (nunca a entrada crua como template) evita a classe inteira de
+   vulnerabilidade — não há motivo para o Jinja2 avaliar código dentro do campo `nome`.
+4. **Nunca rodar o processo da aplicação como `root`.** Mesmo que o SSTI existisse, um usuário sem
+   privilégios limitaria drasticamente o que um atacante consegue fazer depois de conseguir execução
+   de comando.
+
+## 7. Lições
+
+- **Bloquear palavras-chave não é sandboxing** — a lista negra sempre esquece algum caminho de
+  introspecção da linguagem.
+- **A própria UI pode entregar a sintaxe do motor de templates de graça** — aqui, o exemplo
+  `{{ nome.upper() }}` na página já confirmava Jinja2 antes de qualquer teste.
+- **`__mro__` + `__subclasses__()` é o bypass clássico de sandbox parcial em Jinja2/Python** — vale
+  ter esse payload de cabeça (ou uma ferramenta como `tplmap`) para qualquer SSTI confirmado.
+- **Rodar como root transforma qualquer bug de execução de código em comprometimento total do
+  sistema** — princípio do menor privilégio é uma defesa em camadas, independente de corrigir o bug
+  principal.
 
 ---
 

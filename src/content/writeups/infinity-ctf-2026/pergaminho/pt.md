@@ -1,8 +1,9 @@
 ---
 title: 'Pergaminho — Writeup completo'
-description: 'XXE clássico numa importação de contrato: dois arquivos-alvo falham por conteúdo XML inválido antes de achar a flag em /tmp/flag.txt.'
+description: 'Por que "Pergaminho"? Porque o desafio importa "contratos" num formato de documento bem antigo — e formato antigo, vulnerabilidade clássica: dava pra esconder, dentro do próprio documento, um pedido pra que o servidor lesse arquivos do seu próprio disco.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'web'
+subcategory: 'XXE'
 difficulty: 'medium'
 tags:
   - xxe
@@ -13,7 +14,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Web · **Dificuldade:** Medium
+> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 308
 > **Vulnerabilidades:** XXE (XML External Entity) — leitura arbitrária de arquivo
 > **Flag:** `flag{infinity_ctf_2026_pergaminho_77e9f0fa1b}`
 
@@ -96,7 +97,7 @@ Só que essa tentativa deu erro: **"XML inválido"**.
 
 Isso explicava por que `/app/app.py` dava erro mesmo com a técnica correta: o código Python quase certamente tinha um `<` ou `&` em algum lugar (comparações, imports, o que for).
 
-A tentativa seguinte foi uma técnica clássica de bypass pra esse exato problema: usar uma **entidade de parâmetro** (`%`) combinada com `CDATA` e exfiltração _out-of-band_ (OOB) via uma URI `data:` — a ideia geral é empacotar o conteúdo problemático dentro de um bloco `CDATA` (que o parser XML trata como texto literal, sem interpretar `<`/`&`) antes de reinjetar no documento. Só que essa técnica **não funcionou** — nem para `/app/app.py`, nem para um arquivo seguro de controle como `/etc/hostname` (que deu "inválido" mesmo sendo um arquivo totalmente limpo, sem `<`/`&`). Isso indicava que o parser (provavelmente `expat` via `xml.sax`, com `external_pes` desligado) só resolvia **entidades gerais** externas, não **entidades de parâmetro** — e sem um servidor próprio pra hospedar um DTD, não havia como fazer exfiltração _out-of-band_.
+A tentativa seguinte foi uma técnica clássica de bypass pra esse exato problema: usar uma **entidade de parâmetro** (`%`) combinada com `CDATA` e exfiltração _out-of-band_ (OOB) via uma URI `data:` — a ideia geral é empacotar o conteúdo problemático dentro de um bloco `CDATA` (que o parser XML trata como texto literal, sem interpretar `<`/`&`) antes de reinjetar no documento. Só que essa técnica **não funcionou** — nem para `/app/app.py`, nem para um arquivo seguro de controle como `/etc/hostname` (que deu "inválido" mesmo sendo um arquivo totalmente limpo, sem `<`/`&`). Isso indicava que o parser (provavelmente `expat` via `xml.sax`, com `external_pes` desligado) só resolvia **entidades gerais** externas, não **entidades de parâmetro** — e sem um servidor próprio pra hospedar um DTD (DTD = _Document Type Definition_, um documento que pode declarar entidades "por fora", hospedado em outro lugar), não havia como fazer exfiltração _out-of-band_ (enviar o conteúdo lido embutido numa requisição pra um servidor que você controla, em vez de recebê-lo direto na resposta).
 
 Outra tentativa: `/proc/self/environ` (variáveis de ambiente do processo, um alvo clássico quando se procura uma flag guardada como variável de ambiente). Essa também falhou sempre — arquivos em `/proc` costumam ter **bytes NUL** no conteúdo, que também quebram um documento XML, pelo mesmo motivo: conteúdo que não é válido dentro de um elemento XML.
 
@@ -154,10 +155,60 @@ flag{infinity_ctf_2026_pergaminho_77e9f0fa1b}
 
 ---
 
-## 6. Lições
+## 6. Recapitulando a cadeia
+
+```
+1. Recon
+   └─ POST /importar (campo de form "xml", nao body raw) processa XML enviado pelo usuario
+
+2. XXE confirmado
+   └─ <!ENTITY xxe SYSTEM "file:///etc/passwd"> + &xxe; dentro de <observacoes>
+      → servidor le o arquivo e devolve o conteudo
+
+3. Beco sem saida #1: conteudo vira XML invalido
+   └─ /app/app.py e /proc/self/environ falham ("XML invalido")
+      → codigo-fonte tem "<"/"&" cru; /proc tem bytes NUL
+      → tecnica de bypass (parameter entity + OOB via data:) tambem falha:
+        parser so resolve entidades GERAIS externas, nao PARAMETRO
+
+4. Beco sem saida #2: template rejeita estrutura desconhecida
+   └─ entidade fora dos campos esperados (remetente/destinatario/valor) -> "Nenhum campo reconhecido"
+      → resolvido colocando &xxe; dentro de <observacoes>, junto dos campos exigidos
+
+5. Achando o arquivo certo
+   └─ /tmp/flag.txt (nao testado antes, fora do foco inicial em codigo-fonte/env vars)
+      → flag devolvida dentro do campo observacoes da resposta
+```
+
+## 7. Por que a aplicação era vulnerável (e como corrigir)
+
+1. **A causa raiz não é "esquecer de validar o XML"** — é o parser aceitar, por padrão, resolver
+   entidades externas. A correção certa é desabilitar isso na configuração do parser (em Python,
+   por exemplo, usar a biblioteca [`defusedxml`](https://pypi.org/project/defusedxml/) no lugar do
+   `xml.sax`/`xml.etree` padrão, ou configurar explicitamente `resolve_entities=False` e desabilitar
+   `DOCTYPE` por completo) — não existe forma segura de "escapar melhor" o XML de entrada, o
+   processamento de entidade externa precisa estar **desligado**.
+2. **Nunca aceitar `DOCTYPE`/DTD em XML vindo de um usuário não confiável.** A imensa maioria das
+   aplicações não tem nenhum uso legítimo para entidades customizadas em XML enviado por formulário
+   — rejeitar qualquer documento que contenha `<!DOCTYPE` já elimina a classe inteira de ataque, sem
+   nem precisar mexer na lógica de resolução de entidades.
+3. **Princípio do menor privilégio no processo que roda o parser.** Mesmo com o parser corrigido,
+   vale rodar o processo de importação com o mínimo de acesso a arquivo possível — se ele não
+   precisa ler `/tmp`, `/proc` ou o próprio código-fonte da aplicação, um sandbox/contêiner separado
+   reduz o estrago de qualquer XXE que passe despercebido no futuro.
+4. **Nunca ecoar de volta o conteúdo bruto de um campo processado a partir de entrada do usuário**,
+   mesmo que pareça inofensivo (como um campo de "observações"). Foi justamente esse eco que
+   permitiu a exfiltração _in-band_ (sem precisar de servidor próprio pra OOB) — sem ele, o ataque
+   ainda existiria, mas seria bem mais difícil de confirmar e explorar.
+
+## 8. Lições
 
 - **XXE não é só "conseguir ler o arquivo"** — é conseguir ler o arquivo **e** o resultado sobreviver como XML válido **e** a aplicação aceitar o documento no formato que ela espera. As três condições são independentes, e cada uma pode te fazer achar que a técnica "não funcionou" quando na verdade só falta ajustar uma delas.
 - **Conteúdo com `<`, `&` cru ou bytes NUL quebra a substituição da entidade.** Isso descarta alvos "óbvios" como código-fonte cheio de comparações/imports, ou arquivos virtuais de `/proc` — não porque a leitura falhe, mas porque o resultado não é um XML válido depois de colado no lugar da entidade.
 - **Quando os alvos óbvios falharem, teste um arquivo de controle simples primeiro** (tipo `/etc/hostname`) pra confirmar se o problema é a técnica ou é especificamente o conteúdo daquele arquivo.
 - **Formulários com template esperam campos específicos.** Um XML tecnicamente correto ainda pode ser rejeitado se não tiver a "forma" que a aplicação espera — vale sempre colocar o payload dentro da estrutura normal de uso, não isolado.
 - Sem servidor próprio pra hospedar um DTD externo, **exfiltração fora-de-banda (OOB) com entidades de parâmetro não é garantida** — depende de como o parser está configurado. Vale testar, mas não assumir que vai funcionar.
+
+---
+
+_Writeup do desafio Pergaminho (Infinity CTF 2026 · Web · Medium)._

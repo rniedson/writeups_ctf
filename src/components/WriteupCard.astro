@@ -13,8 +13,11 @@ interface Props {
 }
 const { locale, slug, entry, isFallback } = Astro.props;
 const t = useTranslations(locale);
-const { title, description, event, category, difficulty, tags, author, pubDate } = entry.data;
-const searchIndex = [title, description, event, category, author, ...tags].join(' ').toLowerCase();
+const { title, description, event, category, subcategory, difficulty, tags, author, pubDate } =
+  entry.data;
+const searchIndex = [title, description, event, category, subcategory ?? '', author, ...tags]
+  .join(' ')
+  .toLowerCase();
 const monthKey = `${pubDate.getUTCFullYear()}-${String(pubDate.getUTCMonth() + 1).padStart(2, '0')}`;
 ---
 
@@ -22,6 +25,7 @@ const monthKey = `${pubDate.getUTCFullYear()}-${String(pubDate.getUTCMonth() + 1
   class="writeup-card"
   data-search={searchIndex}
   data-category={category}
+  data-subcategory={subcategory ?? ''}
   data-difficulty={difficulty ?? ''}
   data-event={event}
   data-author={author}
@@ -36,6 +40,7 @@ const monthKey = `${pubDate.getUTCFullYear()}-${String(pubDate.getUTCMonth() + 1
       <CategoryIcon category={category} />
       {category}
     </span>
+    {subcategory && <span class="badge">{subcategory}</span>}
     {difficulty && <DifficultyBadge locale={locale} difficulty={difficulty} />}
     <span>{event}</span>
     <time datetime={pubDate.toISOString()}>{formatDate(pubDate, locale)}</time>

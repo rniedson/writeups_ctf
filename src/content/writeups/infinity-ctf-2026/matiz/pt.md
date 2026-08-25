@@ -1,8 +1,9 @@
 ---
 title: 'Matiz — Writeup completo'
-description: 'Uma função de merge genérica demais navega qualquer atributo Python via getattr/setattr livre — o equivalente em Python a um prototype pollution — e sobrescreve uma configuração global do módulo.'
+description: '"Matiz" é, literalmente, tom de cor — o app deixa você personalizar a aparência da sua conta. O problema é que a função que salva essa personalização foi longe demais: ela deixava alterar praticamente qualquer configuração interna do sistema, não só as cores.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'web'
+subcategory: 'Prototype Pollution'
 difficulty: 'medium'
 tags:
   - prototype-pollution
@@ -14,29 +15,38 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 394
+> **Categoria:** Web · **Dificuldade:** Medium · **Pontos:** 381
 > **Vulnerabilidades:** Attribute injection em Python via `getattr`/`setattr` livre numa função de merge genérica
 > **Flag:** `flag{infinity_ctf_2026_matiz_dec454bab3}`
 
-Se você já ouviu falar de "prototype pollution" em JavaScript — onde um merge genérico demais deixa
-um atacante escrever em `__proto__` e afetar todos os objetos do processo — este desafio é o
-equivalente quase direto em Python, usando o fato de que **atributos de objetos, classes e módulos
-formam uma cadeia navegável** através de nomes especiais como `__class__`, `__init__` e `__globals__`.
+Em JavaScript existe uma classe de bug bem conhecida chamada "prototype pollution": um merge
+genérico demais deixa um atacante escrever em `__proto__` (um atributo especial que todo objeto
+JavaScript compartilha) e, com isso, afetar o comportamento de todos os objetos do processo, não só
+o que foi mesclado. Este desafio é o equivalente quase direto disso em Python — mesmo se você nunca
+ouviu falar do caso do JavaScript, o raciocínio abaixo é autocontido — usando o fato de que
+**atributos de objetos, classes e módulos formam uma cadeia navegável** através de nomes especiais
+como `__class__`, `__init__` e `__globals__`.
 
 ---
 
 ## 1. Contexto
 
 "Matiz" é um app com um sistema de temas visuais customizáveis — o usuário manda um JSON com
-preferências (cores, fontes, etc.) e o servidor "mescla" isso em cima de uma configuração padrão. A
-home do app linkava diretamente o código-fonte do motor de temas:
+preferências (cores, fontes, etc.) para um endpoint de sincronização, e o servidor "mescla" isso em
+cima de uma configuração padrão já existente. A própria descrição do desafio já dava uma pista
+direta, do tipo "a sincronização de preferências aceita qualquer estrutura" — uma frase que, lida
+com atenção, é quase um convite: se o endpoint realmente aceita "qualquer estrutura" sem restringir
+o formato, o que acontece se eu mandar uma estrutura que ele claramente não deveria aceitar?
+
+A home do app linkava diretamente o código-fonte do motor de temas:
 
 ```
 GET /static/theme-engine.py
 ```
 
 Ler o código-fonte de graça é sempre a primeira coisa a se aproveitar — economiza um bocado de
-engenharia reversa por caixa-preta.
+engenharia reversa por caixa-preta, e muda o desafio de "adivinhar a lógica" para "ler a lógica e
+achar a falha nela".
 
 ## 2. Reconhecimento
 
@@ -82,12 +92,16 @@ sobrescrever qualquer variável global.
 O payload que percorre a cadeia até `__globals__` e sobrescreve uma configuração compartilhada:
 
 ```json
+POST /api/preferencias
+Content-Type: application/json
+
 {
   "__class__": {
     "__init__": {
       "__globals__": {
         "APP_CONFIG": {
-          "modo_diagnostico": true
+          "diagnostics_enabled": true,
+          "maintenance_mode": true
         }
       }
     }
@@ -96,36 +110,59 @@ O payload que percorre a cadeia até `__globals__` e sobrescreve uma configuraç
 ```
 
 Cada nível do JSON corresponde a uma chamada recursiva de `deep_merge`: primeiro navega até
-`__class__` (a classe do objeto de tema), depois até `__init__` (o construtor dessa classe), depois
-até `__globals__` (o módulo inteiro como dicionário), e finalmente escreve em `APP_CONFIG` — uma
-variável global do módulo, compartilhada por todas as requisições do processo, não só pela sessão
-atual.
+`__class__` (a classe do objeto de tema — a instância que representa "minhas preferências"), depois
+até `__init__` (o construtor dessa classe, um método comum a todo objeto Python), depois até
+`__globals__` (o módulo inteiro, exposto como um dicionário de nome → valor), e finalmente escreve
+em `APP_CONFIG` — uma variável global do módulo, compartilhada por **todas** as requisições do
+processo, não só pela sessão que enviou o merge. Note que os dois campos são setados juntos:
+`diagnostics_enabled` (liga o modo de diagnóstico, que é o que de fato importa) e
+`maintenance_mode` (ligado por segurança/efeito colateral observado durante os testes, sem
+necessidade real para o exploit funcionar).
 
-Um endpoint de diagnóstico separado lia essa mesma variável `APP_CONFIG` pra decidir se devolvia
-informação extra — e com o valor sobrescrito via o merge, esse endpoint passou a devolver a flag.
+Um endpoint de diagnóstico separado, `GET /api/suporte/diagnostico`, lia essa mesma variável
+`APP_CONFIG` pra decidir se devolvia informação extra — e com o valor sobrescrito via o merge, esse
+endpoint passou a devolver a flag no campo `relatorio` da resposta.
 
 ## 5. Capturando a flag
 
-Chamando o endpoint de diagnóstico depois do merge malicioso, a resposta trouxe a flag:
+Chamando `GET /api/suporte/diagnostico` depois do merge malicioso, a resposta trouxe a flag:
 
 ```
 flag{infinity_ctf_2026_matiz_dec454bab3}
 ```
 
-## 6. Lições
+## 6. Por que a aplicação era vulnerável (e como corrigir)
 
-- **Nunca use `getattr`/`setattr` (ou equivalentes de outras linguagens) com uma chave vinda direto
-  do usuário, sem whitelist.** Se a intenção é fazer merge de um dicionário de configuração, trate o
-  alvo como dicionário (`target[key]`) e não como objeto — dicionários não têm `__class__` navegável
-  do mesmo jeito perigoso, e mesmo assim vale checar as chaves contra uma lista permitida.
+A causa raiz é a mesma de qualquer prototype pollution/attribute injection: uma função de
+merge/atualização genérica demais, que aceita **qualquer chave** vinda do usuário e a usa
+diretamente para navegar/escrever numa estrutura real do programa, sem uma lista do que é permitido.
+
+1. **Nunca use `getattr`/`setattr` (ou equivalentes de outras linguagens) com uma chave vinda direto
+   do usuário, sem whitelist.** Se a intenção é fazer merge de um dicionário de configuração de
+   preferências (cores, fontes), trate o alvo como dicionário (`target[key] = value`) e não como
+   objeto — acessar chaves de dicionário nunca alcança `__class__`/`__globals__` do mesmo jeito
+   perigoso.
+2. **Mesmo tratando como dicionário, valide as chaves contra uma lista explícita de campos
+   permitidos** (`cor_primaria`, `fonte`, etc.) antes de aplicar o merge — nunca aceite "qualquer
+   estrutura", mesmo que pareça conveniente para o cliente.
+3. **Configuração global mutável e compartilhada entre requisições (`APP_CONFIG`) é um risco por si
+   só**, independente do bug de attribute injection: uma vez que ela pode ser alterada por qualquer
+   caminho, o efeito vale para TODOS os usuários simultâneos do processo, não só quem enviou o
+   payload. Preferências de diagnóstico/manutenção deveriam viver numa configuração de infraestrutura
+   controlada por quem opera o sistema, nunca num objeto alcançável a partir de dados do usuário.
+
+## 7. Lições
+
 - **Qualquer objeto Python "vaza" o módulo inteiro através de `__class__.__init__.__globals__`
   (ou qualquer outro método/função do objeto)** — é um caminho genérico, não específico dessa app.
   Se seu código expõe qualquer forma de navegação livre de atributos a partir de um objeto de
   aplicação, o alcance real é "todo o processo", não só aquele objeto.
-- **Configuração global mutável e compartilhada entre requisições é um risco por si só,**
-  independente do bug de attribute injection: uma vez que ela pode ser alterada por qualquer
-  caminho, o efeito vale pra TODOS os usuários simultâneos do processo, não só quem enviou o
-  payload — vale considerar isso ao decidir se algo deveria ser global ou por-sessão.
+- **Leia a descrição do desafio como uma afirmação técnica.** "Aceita qualquer estrutura" não era
+  força de expressão — era literalmente o comportamento do `deep_merge`.
+- **Endpoints que expõem/linkam o próprio código-fonte** (`/static/*.py`, comentários "veja o
+  código") são ouro — sempre leia antes de tentar engenharia reversa por caixa-preta.
+- **A correção certa** é tratar o alvo do merge sempre como dado (dicionário com chaves
+  permitidas), nunca como objeto navegável por atributo arbitrário.
 
 ---
 

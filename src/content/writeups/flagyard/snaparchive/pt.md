@@ -1,8 +1,9 @@
 ---
 title: 'SnapArchive — Writeup completo'
-description: 'Path Traversal na criação de backups do SnapArchive escala para Argument Injection no tar (RCE) até a flag guardada numa variável de ambiente.'
+description: 'Um serviço de backup de documentos confia demais no que você diz que quer guardar — e essa confiança de mais foi o suficiente pra sair lendo arquivos do próprio servidor e, no fim, assumir o controle total dele.'
 event: 'FlagYard (Training Labs)'
 category: 'web'
+subcategory: 'Path Traversal'
 difficulty: 'easy'
 tags:
   - path-traversal

@@ -1,8 +1,9 @@
 ---
 title: 'Vendix — Writeup completo'
-description: 'Ret2win totalmente às cegas, sem nunca ter o binário em mãos: um leak de canário e de um ponteiro de código bastou para brute-forçar o endereço de vitória. De 0-solve a first blood.'
+description: 'Por que "Vendix"? Soa como o nome de um fabricante de dispositivo genérico — e é exatamente essa caixa-preta que o desafio simula: sem nenhum acesso ao programa por dentro, só uma resposta do aparelho que vazava, por acidente, pedaços de memória suficientes pra assumir o controle do sistema no escuro.'
 event: 'Infinity CTF 2026 (Harpia Security + SENAC)'
 category: 'pwn'
+subcategory: 'Ret2win'
 difficulty: 'hard'
 tags:
   - ret2win
@@ -15,7 +16,7 @@ draft: false
 
 > [!NOTE/Sobre o desafio]
 > **Plataforma:** Infinity CTF 2026 (Harpia Security + SENAC)
-> **Categoria:** Pwn (root) · **Dificuldade:** Hard · **Pontos:** 800 · **0-solve → first blood**
+> **Categoria:** Pwn (root) · **Dificuldade:** Hard · **Pontos:** 758 · **0-solve → first blood**
 > **Vulnerabilidades:** Vazamento de memória não inicializada (canário + ponteiro PIE) → ret2win cego por brute-force
 > **Flag:** `flag{infinity_ctf_2026_vendix_5cde77bff9}` (fixa nesta instância — o formato varia por desafio)
 
