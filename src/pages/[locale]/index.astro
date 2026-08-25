@@ -44,13 +44,22 @@ const difficulties = DIFFICULTY_ORDER.filter((d) => difficultyCounts.has(d)).map
   count: difficultyCounts.get(d) ?? 0,
 }));
 
+const eventCounts = countBy(writeups.map((w) => w.entry.data.event));
+const events = [...eventCounts.entries()]
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([value, count]) => ({ value, count }));
+
 const tagCounts = countBy(writeups.flatMap((w) => w.entry.data.tags));
 const tags = [...tagCounts.entries()]
   .sort((a, b) => a[0].localeCompare(b[0]))
   .map(([value, count]) => ({ value, count }));
 
 const localeTag = locale === 'pt' ? 'pt-BR' : locale;
-const monthFormatter = new Intl.DateTimeFormat(localeTag, { year: 'numeric', month: 'long' });
+const monthFormatter = new Intl.DateTimeFormat(localeTag, {
+  year: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+});
 const monthCounts = countBy(
   writeups.map((w) => {
     const d = w.entry.data.pubDate;
@@ -95,7 +104,7 @@ const months = [...monthCounts.entries()]
               </div>
             </div>
 
-            {categories.length > 1 && (
+            {categories.length > 0 && (
               <fieldset class="filter-group">
                 <legend>{t('sidebar.category')}</legend>
                 {categories.map((c) => (
@@ -109,7 +118,7 @@ const months = [...monthCounts.entries()]
               </fieldset>
             )}
 
-            {difficulties.length > 1 && (
+            {difficulties.length > 0 && (
               <fieldset class="filter-group">
                 <legend>{t('sidebar.difficulty')}</legend>
                 {difficulties.map((d) => (
@@ -122,7 +131,20 @@ const months = [...monthCounts.entries()]
               </fieldset>
             )}
 
-            {months.length > 1 && (
+            {events.length > 0 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.event')}</legend>
+                {events.map((e) => (
+                  <label class="filter-option">
+                    <input type="checkbox" data-facet="event" value={e.value} />
+                    <span>{e.value}</span>
+                    <span class="filter-count">{e.count}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            {months.length > 0 && (
               <fieldset class="filter-group">
                 <legend>{t('sidebar.month')}</legend>
                 {months.map((m) => (
@@ -135,7 +157,7 @@ const months = [...monthCounts.entries()]
               </fieldset>
             )}
 
-            {tags.length > 1 && (
+            {tags.length > 0 && (
               <fieldset class="filter-group">
                 <legend>{t('sidebar.tags')}</legend>
                 <div class="filter-tags">
@@ -233,6 +255,7 @@ const months = [...monthCounts.entries()]
       const query = (searchInput?.value ?? '').trim().toLowerCase();
       const selectedCategory = selectedByFacet('category');
       const selectedDifficulty = selectedByFacet('difficulty');
+      const selectedEvent = selectedByFacet('event');
       const selectedMonth = selectedByFacet('month');
       const selectedTag = selectedByFacet('tag');
 
@@ -243,13 +266,20 @@ const months = [...monthCounts.entries()]
           selectedCategory.size === 0 || selectedCategory.has(card.dataset.category ?? '');
         const matchesDifficulty =
           selectedDifficulty.size === 0 || selectedDifficulty.has(card.dataset.difficulty ?? '');
+        const matchesEvent =
+          selectedEvent.size === 0 || selectedEvent.has(card.dataset.event ?? '');
         const matchesMonth =
           selectedMonth.size === 0 || selectedMonth.has(card.dataset.month ?? '');
         const cardTags = (card.dataset.tags ?? '').split(' ');
         const matchesTag =
           selectedTag.size === 0 || [...selectedTag].some((tag) => cardTags.includes(tag));
         const matches =
-          matchesSearch && matchesCategory && matchesDifficulty && matchesMonth && matchesTag;
+          matchesSearch &&
+          matchesCategory &&
+          matchesDifficulty &&
+          matchesEvent &&
+          matchesMonth &&
+          matchesTag;
         card.hidden = !matches;
         if (matches) visible++;
       });

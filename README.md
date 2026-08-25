@@ -37,13 +37,12 @@ Site publicado (após habilitar o deploy, veja [Deploy](#deploy)): `https://rnie
 - **Callouts** (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` — sintaxe padrão do
   GitHub) via `remark-github-blockquote-alert`, com título localizável por writeup
   (`[!TIP/Sacada do desafio]`) e cor por tipo.
-- **A home é o catálogo completo** — sidebar de filtros (busca + tema/tag, categoria, dificuldade, mês
-  de publicação) sobre todos os writeups, tudo client-side (sem index nem dependência), com estado
-  refletido na URL (`?tag=rce&category=web`, por exemplo) pra dar link direto de uma busca filtrada.
-  Filtros com um único valor possível ficam ocultos (não faz sentido oferecer um checkbox que não
-  filtra nada) — eles aparecem sozinhos conforme o acervo cresce. `/writeups/` virou um redirect pra
-  home; `/writeups/category/<categoria>/` e `/tags/<tag>/` continuam existindo como páginas estáticas
-  à parte (bom pra SEO e link direto).
+- **A home é o catálogo completo** — sidebar de filtros (busca + categoria, dificuldade, organizadora
+  do CTF — o campo `event`, mês de publicação, tema/tag) sobre todos os writeups, tudo client-side
+  (sem index nem dependência), com estado refletido na URL (`?tag=rce&category=web`, por exemplo) pra
+  dar link direto de uma busca filtrada. `/writeups/` virou um redirect pra home;
+  `/writeups/category/<categoria>/` e `/tags/<tag>/` continuam existindo como páginas estáticas à
+  parte (bom pra SEO e link direto).
 
 ```text
 src/
