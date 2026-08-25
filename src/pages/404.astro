@@ -1,0 +1,21 @@
+---
+import { withBase } from '../i18n/utils';
+---
+
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 — Not Found</title>
+  </head>
+  <body style="font-family: sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem;">
+    <h1>404</h1>
+    <p>Página não encontrada · Página no encontrada · Page not found</p>
+    <p>
+      <a href={withBase('/pt/')}>pt</a> · <a href={withBase('/es/')}>es</a> · <a
+        href={withBase('/en/')}>en</a
+      >
+    </p>
+  </body>
+</html>

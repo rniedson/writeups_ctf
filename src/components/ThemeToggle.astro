@@ -1,0 +1,67 @@
+---
+import { useTranslations } from '../i18n/utils';
+import type { Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<button id="theme-toggle" type="button" aria-label={t('theme.toggle')} title={t('theme.toggle')}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    width="18"
+    height="18"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="4"></circle>
+    <path
+      d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+    ></path>
+  </svg>
+</button>
+
+<style>
+  #theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-raised);
+    color: var(--color-text);
+    cursor: pointer;
+  }
+  #theme-toggle:hover {
+    border-color: var(--color-accent);
+  }
+</style>
+
+<script>
+  const STORAGE_KEY = 'writeups-ctf:theme';
+  const button = document.getElementById('theme-toggle');
+
+  function currentTheme(): 'light' | 'dark' {
+    return document.documentElement.dataset.theme === 'dark' ||
+      (!document.documentElement.dataset.theme &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+      ? 'dark'
+      : 'light';
+  }
+
+  button?.addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    localStorage.setItem(STORAGE_KEY, next);
+  });
+</script>

@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import WriteupCard from '../../../components/WriteupCard.astro';
+import { locales, type Locale } from '../../../i18n/ui';
+import { useTranslations, localizedPath } from '../../../i18n/utils';
+import { listWriteups } from '../../../lib/writeups';
+import { CATEGORIES } from '../../../consts';
+
+export function getStaticPaths() {
+  return locales.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: Locale };
+const t = useTranslations(locale);
+const writeups = await listWriteups(locale);
+const categoriesInUse = CATEGORIES.filter((c) => writeups.some((w) => w.entry.data.category === c));
+---
+
+<BaseLayout
+  locale={locale}
+  title={t('writeups.title')}
+  description={t('site.tagline')}
+  pathWithoutLocale="writeups/"
+>
+  <h1>{t('writeups.title')}</h1>
+
+  {
+    categoriesInUse.length > 0 && (
+      <p class="category-filters">
+        {t('writeups.filterByCategory')}:
+        {categoriesInUse.map((c) => (
+          <a class="badge" href={localizedPath(locale, `writeups/category/${c}/`)}>
+            {c}
+          </a>
+        ))}
+      </p>
+    )
+  }
+
+  {
+    writeups.length === 0 ? (
+      <p>{t('writeups.empty')}</p>
+    ) : (
+      <div class="writeup-list">
+        {writeups.map((w) => (
+          <WriteupCard locale={locale} slug={w.slug} entry={w.entry} isFallback={w.isFallback} />
+        ))}
+      </div>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .writeup-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+</style>

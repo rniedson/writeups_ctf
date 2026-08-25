@@ -1,0 +1,83 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+import { useTranslations, localizedPath, formatDate } from '../i18n/utils';
+import type { Locale } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+  slug: string;
+  entry: CollectionEntry<'writeups'>;
+  isFallback: boolean;
+}
+const { locale, slug, entry, isFallback } = Astro.props;
+const t = useTranslations(locale);
+const { title, description, event, category, tags, pubDate, updatedDate, author } = entry.data;
+const pathWithoutLocale = `writeups/${slug}/`;
+---
+
+<BaseLayout
+  locale={locale}
+  title={title}
+  description={description}
+  pathWithoutLocale={pathWithoutLocale}
+  ogType="article"
+>
+  <article class="prose">
+    <p><a href={localizedPath(locale, 'writeups/')}>&larr; {t('writeup.backToList')}</a></p>
+
+    <h1>{title}</h1>
+
+    <p class="writeup-meta">
+      <span class="badge badge-category">{category}</span>
+      <span class="badge">{event}</span>
+      <span>
+        {t('writeup.publishedOn')}{' '}
+        <time datetime={pubDate.toISOString()}>{formatDate(pubDate, locale)}</time>
+      </span>
+      {
+        updatedDate && (
+          <span>
+            · {t('writeup.updatedOn')}{' '}
+            <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate, locale)}</time>
+          </span>
+        )
+      }
+      <span>
+        · {t('writeup.author')}: {author}
+      </span>
+    </p>
+
+    {
+      tags.length > 0 && (
+        <p class="writeup-tags">
+          {tags.map((tag: string) => (
+            <a class="badge" href={localizedPath(locale, `tags/${tag}/`)}>
+              #{tag}
+            </a>
+          ))}
+        </p>
+      )
+    }
+
+    {isFallback && <p class="notice">{t('writeup.fallbackNotice')}</p>}
+
+    <slot />
+  </article>
+</BaseLayout>
+
+<style>
+  .writeup-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+  .writeup-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+</style>

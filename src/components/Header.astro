@@ -1,0 +1,72 @@
+---
+import { useTranslations, localizedPath } from '../i18n/utils';
+import type { Locale } from '../i18n/ui';
+import ThemeToggle from './ThemeToggle.astro';
+import LanguageSwitcher from './LanguageSwitcher.astro';
+
+interface Props {
+  locale: Locale;
+  /** Caminho sem o prefixo de idioma, usado pelo LanguageSwitcher para trocar de idioma na mesma página. */
+  pathWithoutLocale?: string;
+}
+const { locale, pathWithoutLocale = '' } = Astro.props;
+const t = useTranslations(locale);
+---
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href={localizedPath(locale)}>{t('site.title')}</a>
+    <nav aria-label="main">
+      <a href={localizedPath(locale)}>{t('nav.home')}</a>
+      <a href={localizedPath(locale, 'writeups/')}>{t('nav.writeups')}</a>
+      <a href={localizedPath(locale, 'tags/')}>{t('nav.tags')}</a>
+      <a href={localizedPath(locale, 'about/')}>{t('nav.about')}</a>
+    </nav>
+    <div class="header-actions">
+      <LanguageSwitcher locale={locale} pathWithoutLocale={pathWithoutLocale} />
+      <ThemeToggle locale={locale} />
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-bg);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding-block: 0.85rem;
+  }
+  .brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-decoration: none;
+    color: var(--color-text);
+    margin-right: auto;
+  }
+  nav {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  nav a {
+    text-decoration: none;
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+  }
+  nav a:hover {
+    color: var(--color-text);
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+</style>

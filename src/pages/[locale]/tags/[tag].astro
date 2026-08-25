@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import WriteupCard from '../../../components/WriteupCard.astro';
+import { locales, type Locale } from '../../../i18n/ui';
+import { useTranslations } from '../../../i18n/utils';
+import { listWriteups } from '../../../lib/writeups';
+
+export async function getStaticPaths() {
+  const paths: { params: { locale: string; tag: string } }[] = [];
+  for (const locale of locales) {
+    const writeups = await listWriteups(locale);
+    const tags = new Set(writeups.flatMap((w) => w.entry.data.tags));
+    for (const tag of tags) {
+      paths.push({ params: { locale, tag } });
+    }
+  }
+  return paths;
+}
+
+const { locale, tag } = Astro.params as { locale: Locale; tag: string };
+const t = useTranslations(locale);
+const writeups = (await listWriteups(locale)).filter((w) => w.entry.data.tags.includes(tag));
+---
+
+<BaseLayout
+  locale={locale}
+  title={`#${tag}`}
+  description={t('site.tagline')}
+  pathWithoutLocale={`tags/${tag}/`}
+>
+  <h1>{t('tag.writeupsWithTag')} #{tag}</h1>
+  <div class="writeup-list">
+    {
+      writeups.map((w) => (
+        <WriteupCard locale={locale} slug={w.slug} entry={w.entry} isFallback={w.isFallback} />
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .writeup-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+</style>

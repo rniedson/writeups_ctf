@@ -1,0 +1,49 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import WriteupCard from '../../../../components/WriteupCard.astro';
+import { locales, type Locale } from '../../../../i18n/ui';
+import { useTranslations } from '../../../../i18n/utils';
+import { listWriteups } from '../../../../lib/writeups';
+import { CATEGORIES } from '../../../../consts';
+
+export async function getStaticPaths() {
+  const paths: { params: { locale: string; category: string } }[] = [];
+  for (const locale of locales) {
+    const writeups = await listWriteups(locale);
+    for (const category of CATEGORIES) {
+      if (writeups.some((w) => w.entry.data.category === category)) {
+        paths.push({ params: { locale, category } });
+      }
+    }
+  }
+  return paths;
+}
+
+const { locale, category } = Astro.params as { locale: Locale; category: string };
+const t = useTranslations(locale);
+const writeups = (await listWriteups(locale)).filter((w) => w.entry.data.category === category);
+---
+
+<BaseLayout
+  locale={locale}
+  title={`${t('writeups.title')} · ${category}`}
+  description={t('site.tagline')}
+  pathWithoutLocale={`writeups/category/${category}/`}
+>
+  <h1>{t('writeups.title')} — {category}</h1>
+  <div class="writeup-list">
+    {
+      writeups.map((w) => (
+        <WriteupCard locale={locale} slug={w.slug} entry={w.entry} isFallback={w.isFallback} />
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .writeup-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+</style>

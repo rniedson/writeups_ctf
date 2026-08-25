@@ -1,0 +1,60 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { locales, type Locale } from '../../../i18n/ui';
+import { useTranslations, localizedPath } from '../../../i18n/utils';
+import { listWriteups } from '../../../lib/writeups';
+
+export function getStaticPaths() {
+  return locales.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: Locale };
+const t = useTranslations(locale);
+const writeups = await listWriteups(locale);
+
+const tagCounts = new Map<string, number>();
+for (const w of writeups) {
+  for (const tag of w.entry.data.tags) {
+    tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+}
+const tags = [...tagCounts.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+---
+
+<BaseLayout
+  locale={locale}
+  title={t('tags.title')}
+  description={t('site.tagline')}
+  pathWithoutLocale="tags/"
+>
+  <h1>{t('tags.title')}</h1>
+  {
+    tags.length === 0 ? (
+      <p>{t('tags.empty')}</p>
+    ) : (
+      <ul class="tag-list">
+        {tags.map(([tag, count]) => (
+          <li>
+            <a class="badge" href={localizedPath(locale, `tags/${tag}/`)}>
+              #{tag} <span class="count">({count})</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .tag-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    margin-top: 1rem;
+  }
+  .count {
+    color: var(--color-text-muted);
+  }
+</style>

@@ -1,0 +1,32 @@
+---
+import { render } from 'astro:content';
+import WriteupLayout from '../../../layouts/WriteupLayout.astro';
+import { locales, type Locale } from '../../../i18n/ui';
+import { withBase } from '../../../i18n/utils';
+import { getWriteupGroups, getWriteupForLocale } from '../../../lib/writeups';
+
+export async function getStaticPaths() {
+  const groups = await getWriteupGroups();
+  const paths: { params: { locale: string; slug: string } }[] = [];
+  for (const locale of locales) {
+    for (const group of groups) {
+      paths.push({ params: { locale, slug: group.slug } });
+    }
+  }
+  return paths;
+}
+
+const { locale, slug } = Astro.params as { locale: Locale; slug: string };
+const result = await getWriteupForLocale(locale, slug);
+
+if (!result) {
+  return Astro.redirect(withBase('/404'));
+}
+
+const { entry, isFallback } = result;
+const { Content } = await render(entry);
+---
+
+<WriteupLayout locale={locale} slug={slug} entry={entry} isFallback={isFallback}>
+  <Content />
+</WriteupLayout>

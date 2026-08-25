@@ -1,0 +1,84 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { useTranslations, withBase } from '../i18n/utils';
+import { locales, type Locale } from '../i18n/ui';
+import '../styles/global.css';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  pathWithoutLocale?: string;
+  ogType?: 'website' | 'article';
+}
+const { locale, title, description, pathWithoutLocale = '', ogType = 'website' } = Astro.props;
+const t = useTranslations(locale);
+const pageTitle = pathWithoutLocale === '' ? t('site.title') : `${title} · ${t('site.title')}`;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang={locale} data-theme="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="icon" href={withBase('/favicon.ico')} />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    {
+      locales.map((l) => (
+        <link
+          rel="alternate"
+          hreflang={l}
+          href={new URL(withBase(`/${l}/${pathWithoutLocale}`), Astro.site)}
+        />
+      ))
+    }
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={new URL(withBase(`/pt/${pathWithoutLocale}`), Astro.site)}
+    />
+
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:site_name" content={t('site.title')} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={t('site.title')}
+      href={withBase(`/${locale}/rss.xml`)}
+    />
+
+    <script is:inline>
+      (function () {
+        var STORAGE_KEY = 'writeups-ctf:theme';
+        try {
+          var saved = localStorage.getItem(STORAGE_KEY);
+          if (saved === 'light' || saved === 'dark') {
+            document.documentElement.dataset.theme = saved;
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <Header locale={locale} pathWithoutLocale={pathWithoutLocale} />
+    <main class="wrap">
+      <slot />
+    </main>
+    <Footer locale={locale} />
+  </body>
+</html>

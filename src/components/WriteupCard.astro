@@ -1,0 +1,57 @@
+---
+import { useTranslations, localizedPath, formatDate } from '../i18n/utils';
+import type { Locale } from '../i18n/ui';
+import type { WriteupEntry } from '../lib/writeups';
+
+interface Props {
+  locale: Locale;
+  slug: string;
+  entry: WriteupEntry;
+  isFallback: boolean;
+}
+const { locale, slug, entry, isFallback } = Astro.props;
+const t = useTranslations(locale);
+const { title, description, event, category, pubDate } = entry.data;
+---
+
+<article class="writeup-card">
+  <a href={localizedPath(locale, `writeups/${slug}/`)} class="card-title-link">
+    <h3>{title}</h3>
+  </a>
+  <p class="meta">
+    <span class="badge badge-category">{category}</span>
+    <span>{event}</span>
+    <time datetime={pubDate.toISOString()}>{formatDate(pubDate, locale)}</time>
+    {isFallback && <span class="badge">{t('lang.switch')}: pt</span>}
+  </p>
+  <p class="description">{description}</p>
+</article>
+
+<style>
+  .writeup-card {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    background: var(--color-bg-raised);
+  }
+  .card-title-link {
+    text-decoration: none;
+    color: var(--color-text);
+  }
+  .writeup-card h3 {
+    margin: 0 0 0.4rem;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 0 0 0.5rem;
+  }
+  .description {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+</style>

@@ -1,0 +1,192 @@
+:root {
+  --color-bg: #ffffff;
+  --color-bg-raised: #f4f5f7;
+  --color-border: #dfe2e6;
+  --color-text: #1a1d21;
+  --color-text-muted: #5c6470;
+  --color-accent: #0e6e4d;
+  --color-accent-contrast: #ffffff;
+  --color-link: #0e6e4d;
+  --color-code-bg: #f4f5f7;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --max-width: 72rem;
+  --content-width: 46rem;
+  --radius: 0.5rem;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --color-bg: #10131a;
+  --color-bg-raised: #171b24;
+  --color-border: #2a2f3a;
+  --color-text: #e7e9ee;
+  --color-text-muted: #9aa2b1;
+  --color-accent: #4fd8a0;
+  --color-accent-contrast: #0a1410;
+  --color-link: #4fd8a0;
+  --color-code-bg: #171b24;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-bg: #10131a;
+    --color-bg-raised: #171b24;
+    --color-border: #2a2f3a;
+    --color-text: #e7e9ee;
+    --color-text-muted: #9aa2b1;
+    --color-accent: #4fd8a0;
+    --color-accent-contrast: #0a1410;
+    --color-link: #4fd8a0;
+    --color-code-bg: #171b24;
+
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--color-link);
+}
+
+.wrap {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.prose {
+  max-width: var(--content-width);
+}
+
+.prose h2 {
+  margin-top: 2.5rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.4rem;
+}
+
+.prose h3 {
+  margin-top: 1.75rem;
+}
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding: 0.25rem 1rem;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+}
+
+.prose :not(pre) > code {
+  background: var(--color-code-bg);
+  border-radius: 0.3rem;
+  padding: 0.15rem 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.prose pre {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+}
+
+.prose pre code {
+  font-family: var(--font-mono);
+}
+
+/* Shiki dual-theme: defaultColor:false no astro.config.mjs delega o controle pra cá. */
+:root[data-theme='dark'] .astro-code,
+:root[data-theme='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .astro-code,
+  :root:not([data-theme='light']) .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.badge-category {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  border-color: transparent;
+}
+
+.notice {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-raised);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  color: var(--color-text-muted);
+  margin-block: 1.5rem;
+}

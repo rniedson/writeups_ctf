@@ -1,0 +1,59 @@
+---
+import { useTranslations, localizedPath } from '../i18n/utils';
+import type { Locale } from '../i18n/ui';
+import { SITE, AUTHOR } from '../consts';
+
+interface Props {
+  locale: Locale;
+}
+const { locale } = Astro.props;
+const t = useTranslations(locale);
+const year = 2026;
+---
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <p>
+      {`© ${year} ${AUTHOR.name} ·`}
+      <a href={SITE.repoUrl} target="_blank" rel="noopener noreferrer">{t('footer.sourceCode')}</a>
+    </p>
+    <p class="footer-links">
+      <span
+        >{t('footer.author')}: <a href={AUTHOR.github} target="_blank" rel="noopener noreferrer"
+          >{AUTHOR.name}</a
+        ></span
+      >
+      <a href={AUTHOR.x} target="_blank" rel="noopener noreferrer">X</a>
+      <a href={AUTHOR.site} target="_blank" rel="noopener noreferrer"
+        >{AUTHOR.site.replace(/^https?:\/\//, '')}</a
+      >
+      <a href={localizedPath(locale, 'rss.xml')}>{t('footer.rss')}</a>
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--color-border);
+    margin-top: 3rem;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+  }
+  .footer-inner {
+    padding-block: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .footer-links a {
+    color: var(--color-text-muted);
+  }
+  .footer-links a:hover {
+    color: var(--color-accent);
+  }
+</style>

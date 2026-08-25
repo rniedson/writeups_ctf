@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import WriteupCard from '../../components/WriteupCard.astro';
+import { locales, type Locale } from '../../i18n/ui';
+import { useTranslations, localizedPath } from '../../i18n/utils';
+import { listWriteups } from '../../lib/writeups';
+
+export function getStaticPaths() {
+  return locales.map((locale) => ({ params: { locale } }));
+}
+
+const { locale } = Astro.params as { locale: Locale };
+const t = useTranslations(locale);
+const writeups = (await listWriteups(locale)).slice(0, 6);
+---
+
+<BaseLayout locale={locale} title={t('site.title')} description={t('site.tagline')}>
+  <section class="hero">
+    <h1>{t('site.title')}</h1>
+    <p>{t('site.tagline')}</p>
+  </section>
+
+  <section>
+    <h2>{t('home.latest')}</h2>
+    {
+      writeups.length === 0 ? (
+        <p>{t('writeups.empty')}</p>
+      ) : (
+        <div class="writeup-list">
+          {writeups.map((w) => (
+            <WriteupCard locale={locale} slug={w.slug} entry={w.entry} isFallback={w.isFallback} />
+          ))}
+        </div>
+      )
+    }
+    <p><a href={localizedPath(locale, 'writeups/')}>{t('home.viewAll')} &rarr;</a></p>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    padding-block: 2rem 1rem;
+  }
+  .writeup-list {
+    display: grid;
+    gap: 1rem;
+  }
+</style>
