@@ -3,6 +3,7 @@ title: 'SnapArchive — Writeup completo'
 description: 'Path Traversal na criação de backups do SnapArchive escala para Argument Injection no tar (RCE) até a flag guardada numa variável de ambiente.'
 event: 'FlagYard (Training Labs)'
 category: 'web'
+difficulty: 'easy'
 tags:
   - path-traversal
   - argument-injection
@@ -14,6 +15,7 @@ author: 'g01x5'
 draft: false
 ---
 
+> [!NOTE/Sobre o desafio]
 > **Plataforma:** FlagYard (Training Labs)
 > **Categoria:** Web · **Dificuldade:** Easy · **Pontos:** 120
 > **Vulnerabilidades:** Path Traversal (leitura arbitrária de arquivos) → escalada para **Argument Injection no `tar`** (execução remota de comandos)
@@ -104,7 +106,8 @@ poderia virar dois comandos: o `tar` **e** um `rm -rf /`. Isso é **Command Inje
 
 Muitos programas de linha de comando têm opções perigosas. O `tar`, por exemplo, tem a opção `--checkpoint-action=exec=COMANDO`, que manda o próprio `tar` **executar um comando** durante o empacotamento. Se eu conseguir colar `--checkpoint-action=exec=...` na lista de argumentos, o `tar` roda meu comando — sem eu precisar de nenhum `;` ou `$()`. Isso é catalogado no [GTFOBins](https://gtfobins.github.io/gtfobins/tar/), um repositório de "truques" com binários do Unix.
 
-> **Resumo das hipóteses:** ou eu escapo da pasta com `../` para **ler** arquivos (A), ou eu abuso do `tar`/`zip` da criação de backup para **executar** algo (B). No fim, veremos que o desafio exige **as duas ideias combinadas**.
+> [!TIP/Resumo das hipóteses]
+> Ou eu escapo da pasta com `../` para **ler** arquivos (A), ou eu abuso do `tar`/`zip` da criação de backup para **executar** algo (B). No fim, veremos que o desafio exige **as duas ideias combinadas**.
 
 ---
 
@@ -202,7 +205,8 @@ bun:x:1000:1000:...:/home/bun:/bin/bash
 
 Conseguimos ler o `/etc/passwd`! Isso confirma **leitura arbitrária de arquivos**. Note o usuário `bun` (uid 1000): a aplicação roda com o runtime **Bun** (um ambiente JavaScript/TypeScript, alternativa ao Node.js).
 
-> **Detalhe técnico do `tar`:** quando o `tar` recebe um caminho com `../`, ele guarda o arquivo no pacote removendo os `../` do começo (por isso a entrada apareceu como `etc/passwd`). O conteúdo, porém, é o do arquivo real. E como o `tar` **entra recursivamente em diretórios**, dá até para pedir uma pasta inteira e listar seu conteúdo — foi assim que mapeamos o sistema (veja a seção 6).
+> [!NOTE/Detalhe técnico do tar]
+> Quando o `tar` recebe um caminho com `../`, ele guarda o arquivo no pacote removendo os `../` do começo (por isso a entrada apareceu como `etc/passwd`). O conteúdo, porém, é o do arquivo real. E como o `tar` **entra recursivamente em diretórios**, dá até para pedir uma pasta inteira e listar seu conteúdo — foi assim que mapeamos o sistema (veja a seção 6).
 
 ---
 
@@ -292,6 +296,7 @@ Precisamos de algo mais poderoso do que "ler arquivos". Precisamos **executar co
 
 Aqui as duas hipóteses se encontram. Lembra da observação do fim da seção 5?
 
+> [!IMPORTANT/Ponto-chave]
 > Cada item de `files` vira um argumento do `tar`, e **não há um `--`** separando as opções dos nomes de arquivo.
 
 Em programas de linha de comando Unix, o `--` é um marcador que significa "acabaram as opções; tudo depois disso é um nome de arquivo, mesmo que comece com `-`". Como o comando do SnapArchive é:
@@ -340,7 +345,8 @@ uid=1000(bun) gid=1000(bun) groups=1000(bun)
 
 **Temos execução remota de comandos (RCE)** como o usuário `bun`. 🎯
 
-> **Por que essa é a "sacada" do desafio:** o path traversal (Hipótese A) é uma isca — ele resolve "leitura de arquivos", mas a flag não é um arquivo. O mesmo bug de não-validação (passar entradas do usuário direto pro `tar` sem `--`) permite escalar de "ler arquivo" para "executar comando" (Hipótese B, na forma de _argument injection_). Você precisa das duas ideias.
+> [!TIP/A sacada do desafio]
+> O path traversal (Hipótese A) é uma isca — ele resolve "leitura de arquivos", mas a flag não é um arquivo. O mesmo bug de não-validação (passar entradas do usuário direto pro `tar` sem `--`) permite escalar de "ler arquivo" para "executar comando" (Hipótese B, na forma de _argument injection_). Você precisa das duas ideias.
 
 ---
 

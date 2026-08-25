@@ -1,19 +1,34 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
-import { useTranslations, localizedPath, formatDate } from '../i18n/utils';
+import CategoryIcon from '../components/CategoryIcon.astro';
+import DifficultyBadge from '../components/DifficultyBadge.astro';
+import ReadingProgress from '../components/ReadingProgress.astro';
+import { useTranslations, localizedPath, formatDate, withBase } from '../i18n/utils';
 import type { Locale } from '../i18n/ui';
+import { estimateReadingMinutes } from '../lib/reading-time';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
 
 interface Props {
   locale: Locale;
   slug: string;
   entry: CollectionEntry<'writeups'>;
   isFallback: boolean;
+  headings: Heading[];
 }
-const { locale, slug, entry, isFallback } = Astro.props;
+const { locale, slug, entry, isFallback, headings } = Astro.props;
 const t = useTranslations(locale);
-const { title, description, event, category, tags, pubDate, updatedDate, author } = entry.data;
+const { title, description, event, category, difficulty, tags, pubDate, updatedDate, author } =
+  entry.data;
 const pathWithoutLocale = `writeups/${slug}/`;
+const readingMinutes = estimateReadingMinutes(entry.body ?? '');
+const tocHeadings = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const ogImage = withBase(`/${locale}/writeups/${slug}.png`);
 ---
 
 <BaseLayout
@@ -22,58 +37,167 @@ const pathWithoutLocale = `writeups/${slug}/`;
   description={description}
   pathWithoutLocale={pathWithoutLocale}
   ogType="article"
+  ogImage={ogImage}
 >
-  <article class="prose">
-    <p><a href={localizedPath(locale, 'writeups/')}>&larr; {t('writeup.backToList')}</a></p>
+  <ReadingProgress />
 
-    <h1>{title}</h1>
+  <div class="writeup-layout">
+    <article
+      class="prose"
+      data-copy-label={t('writeup.copyCode')}
+      data-copied-label={t('writeup.copiedCode')}
+    >
+      <p><a href={localizedPath(locale)}>&larr; {t('writeup.backToList')}</a></p>
 
-    <p class="writeup-meta">
-      <span class="badge badge-category">{category}</span>
-      <span class="badge">{event}</span>
-      <span>
-        {t('writeup.publishedOn')}{' '}
-        <time datetime={pubDate.toISOString()}>{formatDate(pubDate, locale)}</time>
-      </span>
+      <h1>{title}</h1>
+
+      <p class="writeup-badges">
+        <span class="badge badge-category">
+          <CategoryIcon category={category} />
+          {category}
+        </span>
+        {difficulty && <DifficultyBadge locale={locale} difficulty={difficulty} />}
+      </p>
+
+      <p class="writeup-meta">
+        {event}
+        <span>
+          · {t('writeup.publishedOn')}{' '}
+          <time datetime={pubDate.toISOString()}>{formatDate(pubDate, locale)}</time>
+        </span>
+        {
+          updatedDate && (
+            <span>
+              · {t('writeup.updatedOn')}{' '}
+              <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate, locale)}</time>
+            </span>
+          )
+        }
+        <span>
+          · {t('writeup.author')}: {author}
+        </span>
+        <span>· {readingMinutes} {t('writeup.readingTime')}</span>
+      </p>
+
       {
-        updatedDate && (
-          <span>
-            · {t('writeup.updatedOn')}{' '}
-            <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate, locale)}</time>
-          </span>
+        tags.length > 0 && (
+          <p class="writeup-tags">
+            {tags.map((tag: string) => (
+              <a class="badge" href={localizedPath(locale, `tags/${tag}/`)}>
+                #{tag}
+              </a>
+            ))}
+          </p>
         )
       }
-      <span>
-        · {t('writeup.author')}: {author}
-      </span>
-    </p>
+
+      {isFallback && <p class="notice">{t('writeup.fallbackNotice')}</p>}
+
+      <slot />
+    </article>
 
     {
-      tags.length > 0 && (
-        <p class="writeup-tags">
-          {tags.map((tag: string) => (
-            <a class="badge" href={localizedPath(locale, `tags/${tag}/`)}>
-              #{tag}
-            </a>
-          ))}
-        </p>
+      tocHeadings.length > 0 && (
+        <aside class="toc" aria-label={t('writeup.onThisPage')}>
+          <p class="toc-heading">{t('writeup.onThisPage')}</p>
+          <ol>
+            {tocHeadings.map((h) => (
+              <li class={`toc-depth-${h.depth}`}>
+                <a href={`#${h.slug}`} data-toc-target={h.slug}>
+                  {h.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </aside>
       )
     }
-
-    {isFallback && <p class="notice">{t('writeup.fallbackNotice')}</p>}
-
-    <slot />
-  </article>
+  </div>
 </BaseLayout>
 
+<script>
+  function addCopyButtons() {
+    const article = document.querySelector<HTMLElement>('.prose');
+    if (!article) return;
+    const label = article.dataset.copyLabel ?? 'Copy';
+    const copiedLabel = article.dataset.copiedLabel ?? 'Copied!';
+    const blocks = article.querySelectorAll<HTMLPreElement>('pre');
+    blocks.forEach((pre) => {
+      if (pre.querySelector('.copy-code-btn')) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy-code-btn';
+      button.textContent = label;
+      button.addEventListener('click', async () => {
+        const code = pre.querySelector('code');
+        const text = code ? (code.textContent ?? '') : (pre.textContent ?? '');
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = copiedLabel;
+          setTimeout(() => {
+            button.textContent = label;
+          }, 1500);
+        } catch {
+          // clipboard indisponível (ex.: contexto não seguro) — falha silenciosa
+        }
+      });
+      pre.appendChild(button);
+    });
+  }
+
+  function initTocScrollspy() {
+    const links = document.querySelectorAll<HTMLAnchorElement>('.toc a[data-toc-target]');
+    if (links.length === 0) return;
+    const map = new Map<string, HTMLAnchorElement>();
+    links.forEach((link) => {
+      const target = link.dataset.tocTarget;
+      if (target) map.set(target, link);
+    });
+
+    const headings = Array.from(map.keys())
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+    if (headings.length === 0) return;
+
+    const setActive = (id: string | null) => {
+      links.forEach((link) => link.classList.remove('active'));
+      if (id) map.get(id)?.classList.add('active');
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (visible.length > 0) {
+          const topMost = visible.sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+          )[0];
+          setActive(topMost.target.id);
+        }
+      },
+      { rootMargin: '-96px 0px -70% 0px', threshold: 0 },
+    );
+    headings.forEach((h) => observer.observe(h));
+  }
+
+  addCopyButtons();
+  initTocScrollspy();
+</script>
+
 <style>
-  .writeup-meta {
+  .writeup-badges {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+  }
+  .writeup-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
     color: var(--color-text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
   }
   .writeup-tags {
     display: flex;

@@ -1,0 +1,92 @@
+---
+interface Props {
+  category: string;
+  size?: number;
+}
+const { category, size = 14 } = Astro.props;
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  width={size}
+  height={size}
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  class="category-icon"
+>
+  {
+    category === 'web' && (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M3 12h18" />
+        <ellipse cx="12" cy="12" rx="4" ry="9" />
+      </>
+    )
+  }
+  {
+    category === 'pwn' && (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M7 9l3 3-3 3" />
+        <path d="M13 15h4" />
+      </>
+    )
+  }
+  {
+    category === 'reverse' && (
+      <>
+        <polyline points="8 6 3 12 8 18" />
+        <polyline points="16 6 21 12 16 18" />
+      </>
+    )
+  }
+  {
+    category === 'crypto' && (
+      <>
+        <circle cx="7" cy="7" r="4" />
+        <path d="M10 10l10 10" />
+        <path d="M17 17l2.5 2.5" />
+        <path d="M14 14l2.5 2.5" />
+      </>
+    )
+  }
+  {
+    category === 'forensics' && (
+      <>
+        <circle cx="11" cy="11" r="6" />
+        <path d="M20 20l-3.5-3.5" />
+      </>
+    )
+  }
+  {
+    category === 'misc' && (
+      <>
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <rect x="14" y="14" width="7" height="7" rx="1" />
+      </>
+    )
+  }
+  {
+    category === 'osint' && (
+      <>
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    )
+  }
+  {
+    category === 'hardware' && (
+      <>
+        <rect x="6" y="6" width="12" height="12" rx="1" />
+        <path d="M9 2v4M12 2v4M15 2v4M9 18v4M12 18v4M15 18v4M2 9h4M2 12h4M2 15h4M18 9h4M18 12h4M18 15h4" />
+      </>
+    )
+  }
+</svg>

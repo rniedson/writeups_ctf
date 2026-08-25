@@ -1,0 +1,57 @@
+---
+import { useTranslations } from '../i18n/utils';
+import type { Locale, UiKey } from '../i18n/ui';
+
+interface Props {
+  locale: Locale;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+const { locale, difficulty } = Astro.props;
+const t = useTranslations(locale);
+const labels: Record<typeof difficulty, UiKey> = {
+  easy: 'difficulty.easy',
+  medium: 'difficulty.medium',
+  hard: 'difficulty.hard',
+};
+const label = t(labels[difficulty]);
+---
+
+<span class={`badge badge-difficulty badge-difficulty-${difficulty}`}>{label}</span>
+
+<style>
+  .badge-difficulty-easy {
+    background: color-mix(in srgb, #2f9e5e 18%, transparent);
+    color: #1f8a4d;
+    border-color: color-mix(in srgb, #2f9e5e 35%, transparent);
+  }
+  .badge-difficulty-medium {
+    background: color-mix(in srgb, #d98c1f 18%, transparent);
+    color: #b06f10;
+    border-color: color-mix(in srgb, #d98c1f 35%, transparent);
+  }
+  .badge-difficulty-hard {
+    background: color-mix(in srgb, #d94f4f 18%, transparent);
+    color: #c23d3d;
+    border-color: color-mix(in srgb, #d94f4f 35%, transparent);
+  }
+  :root[data-theme='dark'] .badge-difficulty-easy {
+    color: #6bdb9c;
+  }
+  :root[data-theme='dark'] .badge-difficulty-medium {
+    color: #f0b84f;
+  }
+  :root[data-theme='dark'] .badge-difficulty-hard {
+    color: #f08080;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .badge-difficulty-easy {
+      color: #6bdb9c;
+    }
+    :root:not([data-theme='light']) .badge-difficulty-medium {
+      color: #f0b84f;
+    }
+    :root:not([data-theme='light']) .badge-difficulty-hard {
+      color: #f08080;
+    }
+  }
+</style>

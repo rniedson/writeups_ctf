@@ -24,9 +24,15 @@ if (!result) {
 }
 
 const { entry, isFallback } = result;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
 ---
 
-<WriteupLayout locale={locale} slug={slug} entry={entry} isFallback={isFallback}>
+<WriteupLayout
+  locale={locale}
+  slug={slug}
+  entry={entry}
+  isFallback={isFallback}
+  headings={headings}
+>
   <Content />
 </WriteupLayout>

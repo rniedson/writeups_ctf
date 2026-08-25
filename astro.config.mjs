@@ -1,6 +1,7 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { remarkAlert } from 'remark-github-blockquote-alert';
 
 // Trocar aqui se o repositório for renomeado ou ganhar domínio próprio (ver README).
 const GITHUB_USER = 'rniedson';
@@ -34,6 +35,7 @@ export default defineConfig({
     },
   },
   markdown: {
+    remarkPlugins: [[remarkAlert, { legacyTitle: true }]],
     shikiConfig: {
       themes: {
         light: 'github-light',

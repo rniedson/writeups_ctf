@@ -2,6 +2,8 @@
 import { useTranslations, localizedPath, formatDate } from '../i18n/utils';
 import type { Locale } from '../i18n/ui';
 import type { WriteupEntry } from '../lib/writeups';
+import CategoryIcon from './CategoryIcon.astro';
+import DifficultyBadge from './DifficultyBadge.astro';
 
 interface Props {
   locale: Locale;
@@ -11,15 +13,28 @@ interface Props {
 }
 const { locale, slug, entry, isFallback } = Astro.props;
 const t = useTranslations(locale);
-const { title, description, event, category, pubDate } = entry.data;
+const { title, description, event, category, difficulty, tags, pubDate } = entry.data;
+const searchIndex = [title, description, event, category, ...tags].join(' ').toLowerCase();
+const monthKey = `${pubDate.getUTCFullYear()}-${String(pubDate.getUTCMonth() + 1).padStart(2, '0')}`;
 ---
 
-<article class="writeup-card">
+<article
+  class="writeup-card"
+  data-search={searchIndex}
+  data-category={category}
+  data-difficulty={difficulty ?? ''}
+  data-tags={tags.join(' ')}
+  data-month={monthKey}
+>
   <a href={localizedPath(locale, `writeups/${slug}/`)} class="card-title-link">
     <h3>{title}</h3>
   </a>
   <p class="meta">
-    <span class="badge badge-category">{category}</span>
+    <span class="badge badge-category">
+      <CategoryIcon category={category} />
+      {category}
+    </span>
+    {difficulty && <DifficultyBadge locale={locale} difficulty={difficulty} />}
     <span>{event}</span>
     <time datetime={pubDate.toISOString()}>{formatDate(pubDate, locale)}</time>
     {isFallback && <span class="badge">{t('lang.switch')}: pt</span>}
@@ -33,6 +48,15 @@ const { title, description, event, category, pubDate } = entry.data;
     border-radius: var(--radius);
     padding: 1rem 1.25rem;
     background: var(--color-bg-raised);
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  .writeup-card:hover {
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px -12px rgba(0, 0, 0, 0.35);
   }
   .card-title-link {
     text-decoration: none;

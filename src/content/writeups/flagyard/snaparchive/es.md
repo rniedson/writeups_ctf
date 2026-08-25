@@ -3,6 +3,7 @@ title: 'SnapArchive — Writeup completo'
 description: 'Path Traversal en la creación de backups de SnapArchive escala a Argument Injection en tar (RCE) hasta la flag guardada en una variable de entorno.'
 event: 'FlagYard (Training Labs)'
 category: 'web'
+difficulty: 'easy'
 tags:
   - path-traversal
   - argument-injection
@@ -14,6 +15,7 @@ author: 'g01x5'
 draft: false
 ---
 
+> [!NOTE/Sobre el desafío]
 > **Plataforma:** FlagYard (Training Labs)
 > **Categoría:** Web · **Dificultad:** Easy · **Puntos:** 120
 > **Vulnerabilidades:** Path Traversal (lectura arbitraria de archivos) → escalada a **Argument Injection en `tar`** (ejecución remota de comandos)
@@ -104,7 +106,8 @@ podría convertirse en dos comandos: el `tar` **y** un `rm -rf /`. Esto es **Com
 
 Muchos programas de línea de comandos tienen opciones peligrosas. `tar`, por ejemplo, tiene la opción `--checkpoint-action=exec=COMANDO`, que hace que el propio `tar` **ejecute un comando** durante el empaquetado. Si logro colar `--checkpoint-action=exec=...` en la lista de argumentos, `tar` ejecuta mi comando — sin necesitar ningún `;` ni `$()`. Esto está catalogado en [GTFOBins](https://gtfobins.github.io/gtfobins/tar/), un repositorio de "trucos" con binarios de Unix.
 
-> **Resumen de las hipótesis:** o escapo de la carpeta con `../` para **leer** archivos (A), o abuso del `tar`/`zip` de la creación de backups para **ejecutar** algo (B). Al final veremos que el desafío exige **combinar ambas ideas**.
+> [!TIP/Resumen de las hipótesis]
+> O escapo de la carpeta con `../` para **leer** archivos (A), o abuso del `tar`/`zip` de la creación de backups para **ejecutar** algo (B). Al final veremos que el desafío exige **combinar ambas ideas**.
 
 ---
 
@@ -202,7 +205,8 @@ bun:x:1000:1000:...:/home/bun:/bin/bash
 
 ¡Logramos leer `/etc/passwd`! Esto confirma **lectura arbitraria de archivos**. Nota el usuario `bun` (uid 1000): la aplicación corre con el runtime **Bun** (un entorno JavaScript/TypeScript, alternativa a Node.js).
 
-> **Detalle técnico de `tar`:** cuando `tar` recibe una ruta con `../`, guarda el archivo en el paquete quitando los `../` del principio (por eso la entrada aparece como `etc/passwd`). El contenido, sin embargo, es el del archivo real. Y como `tar` **entra recursivamente en directorios**, incluso se puede pedir una carpeta entera y listar su contenido — así fue como mapeamos el sistema (ver la sección 6).
+> [!NOTE/Detalle técnico de tar]
+> Cuando `tar` recibe una ruta con `../`, guarda el archivo en el paquete quitando los `../` del principio (por eso la entrada aparece como `etc/passwd`). El contenido, sin embargo, es el del archivo real. Y como `tar` **entra recursivamente en directorios**, incluso se puede pedir una carpeta entera y listar su contenido — así fue como mapeamos el sistema (ver la sección 6).
 
 ---
 
@@ -292,6 +296,7 @@ Necesitamos algo más poderoso que "leer archivos". Necesitamos **ejecutar coman
 
 Aquí se encuentran las dos hipótesis. ¿Recuerdas la observación del final de la sección 5?
 
+> [!IMPORTANT/Punto clave]
 > Cada elemento de `files` se convierte en un argumento de `tar`, y **no hay un `--`** separando las opciones de los nombres de archivo.
 
 En los programas de línea de comandos de Unix, `--` es un marcador que significa "se acabaron las opciones; todo lo que viene después es un nombre de archivo, aunque empiece con `-`". Como el comando de SnapArchive es:
@@ -340,7 +345,8 @@ uid=1000(bun) gid=1000(bun) groups=1000(bun)
 
 **Tenemos ejecución remota de comandos (RCE)** como el usuario `bun`. 🎯
 
-> **Por qué esta es la "clave" del desafío:** el path traversal (Hipótesis A) es un señuelo — resuelve "lectura de archivos", pero la flag no es un archivo. El mismo bug de falta de validación (pasar entradas del usuario directo a `tar` sin `--`) permite escalar de "leer archivo" a "ejecutar comando" (Hipótesis B, en forma de _argument injection_). Necesitas las dos ideas.
+> [!TIP/La clave del desafío]
+> El path traversal (Hipótesis A) es un señuelo — resuelve "lectura de archivos", pero la flag no es un archivo. El mismo bug de falta de validación (pasar entradas del usuario directo a `tar` sin `--`) permite escalar de "leer archivo" a "ejecutar comando" (Hipótesis B, en forma de _argument injection_). Necesitas las dos ideas.
 
 ---
 

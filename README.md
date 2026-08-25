@@ -20,6 +20,30 @@ Site publicado (após habilitar o deploy, veja [Deploy](#deploy)): `https://rnie
   por idioma em `/<locale>/rss.xml`).
 - Realce de sintaxe via Shiki (embutido no Astro), com tema claro/escuro que segue o toggle manual do
   site (não só `prefers-color-scheme`).
+- **Imagem de compartilhamento (`og:image`) gerada por build**, uma por writeup e uma genérica por
+  idioma, via `satori` + `@resvg/resvg-js` (`src/lib/og-image.ts`, endpoints `og.png.ts` e
+  `[...slug].png.ts`). Fonte vendorizada em `src/assets/fonts/` (IBM Plex Mono, OFL).
+- **Sumário lateral fixo** nos writeups (gerado a partir dos headings `##`/`###` que o próprio Astro
+  já extrai do Markdown — sem parser extra), com **destaque da seção atual** conforme a rolagem
+  (`IntersectionObserver`) e rolagem suave ao clicar. **Botão de copiar** em todo bloco de código, com
+  numeração de linha e etiqueta da linguagem quando o bloco declara uma.
+- **Busca client-side** na listagem de writeups (filtra por título/descrição/evento/categoria/tags,
+  sem dependência nem índice — o conteúdo já está todo renderizado na página), com atalho `/` para
+  focar o campo.
+- **Badge de dificuldade** (campo opcional `difficulty` no frontmatter) e **ícone por categoria**.
+- **Barra de progresso de leitura** fixa no topo dos writeups.
+- **Tipografia de leitura**: corpo do texto em serifada (Lora, OFL — variável, vendorizada em
+  `src/styles/fonts/`), títulos/UI continuam no sans-serif do sistema.
+- **Callouts** (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` — sintaxe padrão do
+  GitHub) via `remark-github-blockquote-alert`, com título localizável por writeup
+  (`[!TIP/Sacada do desafio]`) e cor por tipo.
+- **A home é o catálogo completo** — sidebar de filtros (busca + tema/tag, categoria, dificuldade, mês
+  de publicação) sobre todos os writeups, tudo client-side (sem index nem dependência), com estado
+  refletido na URL (`?tag=rce&category=web`, por exemplo) pra dar link direto de uma busca filtrada.
+  Filtros com um único valor possível ficam ocultos (não faz sentido oferecer um checkbox que não
+  filtra nada) — eles aparecem sozinhos conforme o acervo cresce. `/writeups/` virou um redirect pra
+  home; `/writeups/category/<categoria>/` e `/tags/<tag>/` continuam existindo como páginas estáticas
+  à parte (bom pra SEO e link direto).
 
 ```text
 src/
@@ -39,14 +63,16 @@ src/
 ├── pages/
 │   ├── index.astro            redireciona "/" -> "/pt/"
 │   └── [locale]/
-│       ├── index.astro        home
+│       ├── index.astro        home = catálogo (busca + sidebar de filtros, client-side)
 │       ├── about.astro
 │       ├── rss.xml.js
+│       ├── og.png.ts          imagem de compartilhamento genérica do idioma
 │       ├── tags/
 │       └── writeups/
-│           ├── index.astro    listagem + filtro por categoria
-│           ├── category/[category].astro
-│           └── [...slug].astro   página do writeup (evento/desafio)
+│           ├── index.astro    redireciona pra home (conteúdo migrou pra lá)
+│           ├── category/[category].astro   página estática por categoria (link direto/SEO)
+│           ├── [...slug].astro             página do writeup (evento/desafio)
+│           └── [...slug].png.ts            imagem de compartilhamento do writeup
 └── styles/global.css          tokens de cor claro/escuro, tipografia, prosa
 public/
 └── writeups/<evento>/<desafio>/   arquivos para download linkados no writeup (ex.: solve.py)
@@ -93,6 +119,7 @@ npm run format:check  # confere formatação sem alterar arquivos
    description: 'Resumo curto da solução'
    event: 'Nome do CTF'
    category: 'web' # web | pwn | reverse | crypto | forensics | misc | osint | hardware
+   difficulty: 'easy' # opcional: easy | medium | hard
    tags:
      - sql-injection
      - python
@@ -110,7 +137,10 @@ npm run format:check  # confere formatação sem alterar arquivos
 3. Escreva o corpo em Markdown normal abaixo do frontmatter. Imagens vão em `imagens/` na mesma pasta
    e são referenciadas com caminho relativo (`![tela de login](./imagens/login.png)`) — o Astro otimiza
    automaticamente. Scripts/arquivos para download vão em `public/writeups/<evento>/<desafio>/` (veja
-   [Arquitetura](#arquitetura)).
+   [Arquitetura](#arquitetura)). Para destacar uma sacada/observação importante, use a sintaxe de
+   callout do GitHub — `> [!TIP]` (ou `[!NOTE]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) na
+   primeira linha do blockquote; para dar um título próprio (traduzido), use
+   `> [!TIP/Título aqui]`.
 4. Rode `npm run check` — frontmatter inválido (categoria errada, data mal formatada, campo obrigatório
    faltando) quebra aqui antes mesmo de gerar o build.
 5. Rode `npm run dev` e confira a página em `http://localhost:4321/pt/writeups/<evento-slug>/<desafio-slug>/`.
@@ -164,6 +194,18 @@ Não configurado nesta sessão (nenhum domínio foi informado). Para configurar 
   embutido para content collections livres.
 - Site (`site`) e `base` calculados para GitHub Pages de projeto (`rniedson.github.io/writeups_ctf`),
   já que nenhum domínio próprio foi informado.
+- Bandeiras no seletor de idioma: 🇧🇷 pt, 🇺🇸 en e, por pedido explícito, 🇲🇽 (México) para es em vez
+  de 🇪🇸 (Espanha) — mantém `aria-label`/`title` com o nome completo do idioma para acessibilidade.
+- Fonte da imagem de compartilhamento (IBM Plex Mono, OFL — licença em
+  `src/assets/fonts/OFL.txt`) escolhida por ter pesos estáticos Bold/Regular prontos; a maioria das
+  fontes do Google Fonts hoje só distribui variável, que o satori não interpola bem.
+- Tempo de leitura é uma estimativa simples (contagem de palavras do Markdown bruto, ~200 palavras/min,
+  ignorando blocos de código) — não usa nenhuma lib de NLP.
+- Fonte do corpo do texto (Lora, OFL — licença em `src/styles/fonts/OFL.txt`) usada na variante
+  variável (upright + itálico), diferente da mono do `og-image.ts`: aqui é CSS puro no navegador, não
+  o satori, então o navegador interpola o peso sem precisar de arquivos estáticos por peso.
+- O Astro 7 trocou o processador de Markdown padrão; plugins remark/rehype (usados pelos callouts)
+  exigem instalar `@astrojs/markdown-remark` à parte — Astro avisa isso sozinho se faltar.
 - Nenhum push/commit foi feito automaticamente — só o `git clone` inicial. Revisão e publicação ficam
   a cargo de quem revisar este trabalho (veja abaixo).
 

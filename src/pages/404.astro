@@ -1,21 +1,44 @@
 ---
-import { withBase } from '../i18n/utils';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { locales, localeNames, defaultLocale } from '../i18n/ui';
+import { useTranslations, localizedPath } from '../i18n/utils';
+
+const t = useTranslations(defaultLocale);
 ---
 
-<!doctype html>
-<html lang="pt">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>404 — Not Found</title>
-  </head>
-  <body style="font-family: sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1rem;">
-    <h1>404</h1>
-    <p>Página não encontrada · Página no encontrada · Page not found</p>
-    <p>
-      <a href={withBase('/pt/')}>pt</a> · <a href={withBase('/es/')}>es</a> · <a
-        href={withBase('/en/')}>en</a
-      >
+<BaseLayout locale={defaultLocale} title={t('notFound.title')} description={t('notFound.body')}>
+  <div class="not-found">
+    <p class="not-found-code">404</p>
+    <h1>{t('notFound.title')}</h1>
+    <p>{t('notFound.body')}</p>
+    <p class="not-found-links">
+      {
+        locales.map((l) => (
+          <a href={localizedPath(l)}>
+            {localeNames[l]} &rarr; {t('notFound.backHome')}
+          </a>
+        ))
+      }
     </p>
-  </body>
-</html>
+  </div>
+</BaseLayout>
+
+<style>
+  .not-found {
+    padding-block: 4rem;
+    max-width: 32rem;
+  }
+  .not-found-code {
+    font-family: var(--font-mono);
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    margin: 0;
+  }
+  .not-found-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+  }
+</style>

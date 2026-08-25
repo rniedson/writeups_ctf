@@ -11,11 +11,21 @@ interface Props {
   description: string;
   pathWithoutLocale?: string;
   ogType?: 'website' | 'article';
+  /** Caminho (com base) da imagem de compartilhamento; padrão é a imagem genérica do idioma. */
+  ogImage?: string;
 }
-const { locale, title, description, pathWithoutLocale = '', ogType = 'website' } = Astro.props;
+const {
+  locale,
+  title,
+  description,
+  pathWithoutLocale = '',
+  ogType = 'website',
+  ogImage = withBase(`/${locale}/og.png`),
+} = Astro.props;
 const t = useTranslations(locale);
 const pageTitle = pathWithoutLocale === '' ? t('site.title') : `${title} · ${t('site.title')}`;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const ogImageURL = new URL(ogImage, Astro.site);
 ---
 
 <!doctype html>
@@ -51,9 +61,13 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:site_name" content={t('site.title')} />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
 
     <link
       rel="alternate"

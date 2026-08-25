@@ -3,6 +3,7 @@ title: 'SnapArchive — Full Writeup'
 description: "Path Traversal in SnapArchive's backup creation escalates into Argument Injection against tar (RCE), down to the flag stored in an environment variable."
 event: 'FlagYard (Training Labs)'
 category: 'web'
+difficulty: 'easy'
 tags:
   - path-traversal
   - argument-injection
@@ -14,6 +15,7 @@ author: 'g01x5'
 draft: false
 ---
 
+> [!NOTE/About the challenge]
 > **Platform:** FlagYard (Training Labs)
 > **Category:** Web · **Difficulty:** Easy · **Points:** 120
 > **Vulnerabilities:** Path Traversal (arbitrary file read) → escalated to **Argument Injection against `tar`** (remote command execution)
@@ -104,7 +106,8 @@ could turn into two commands: `tar` **and** an `rm -rf /`. This is **Command Inj
 
 Many command-line programs have dangerous options. `tar`, for instance, has the option `--checkpoint-action=exec=COMMAND`, which tells `tar` itself to **run a command** during packaging. If I can slip `--checkpoint-action=exec=...` into the argument list, `tar` runs my command — without needing any `;` or `$()`. This is cataloged on [GTFOBins](https://gtfobins.github.io/gtfobins/tar/), a repository of "tricks" involving Unix binaries.
 
-> **Hypothesis summary:** either I escape the folder with `../` to **read** files (A), or I abuse `tar`/`zip` during backup creation to **execute** something (B). As we'll see, the challenge requires **both ideas combined**.
+> [!TIP/Hypothesis summary]
+> Either I escape the folder with `../` to **read** files (A), or I abuse `tar`/`zip` during backup creation to **execute** something (B). As we'll see, the challenge requires **both ideas combined**.
 
 ---
 
@@ -202,7 +205,8 @@ bun:x:1000:1000:...:/home/bun:/bin/bash
 
 We read `/etc/passwd`! This confirms **arbitrary file read**. Note the `bun` user (uid 1000): the application runs on the **Bun** runtime (a JavaScript/TypeScript environment, an alternative to Node.js).
 
-> **`tar` technical detail:** when `tar` receives a path with `../`, it stores the file in the archive with the leading `../` stripped off (that's why the entry showed up as `etc/passwd`). The content, however, is that of the real file. And since `tar` **recurses into directories**, you can even request an entire folder and list its contents — that's how we mapped the system (see section 6).
+> [!NOTE/tar technical detail]
+> When `tar` receives a path with `../`, it stores the file in the archive with the leading `../` stripped off (that's why the entry showed up as `etc/passwd`). The content, however, is that of the real file. And since `tar` **recurses into directories**, you can even request an entire folder and list its contents — that's how we mapped the system (see section 6).
 
 ---
 
@@ -292,6 +296,7 @@ We need something more powerful than "reading files". We need to **execute comma
 
 This is where the two hypotheses meet. Remember the observation at the end of section 5?
 
+> [!IMPORTANT/Key point]
 > Each item of `files` becomes an argument to `tar`, and **there's no `--`** separating the options from the filenames.
 
 In Unix command-line programs, `--` is a marker meaning "options are over; everything after this is a filename, even if it starts with `-`". Since SnapArchive's command is:
@@ -340,7 +345,8 @@ uid=1000(bun) gid=1000(bun) groups=1000(bun)
 
 **We have remote command execution (RCE)** as the `bun` user. 🎯
 
-> **Why this is the challenge's "trick":** path traversal (Hypothesis A) is a decoy — it solves "reading files," but the flag isn't a file. The same non-validation bug (passing user input straight into `tar` without `--`) lets you escalate from "read a file" to "run a command" (Hypothesis B, in the form of _argument injection_). You need both ideas.
+> [!TIP/The challenge's trick]
+> Path traversal (Hypothesis A) is a decoy — it solves "reading files," but the flag isn't a file. The same non-validation bug (passing user input straight into `tar` without `--`) lets you escalate from "read a file" to "run a command" (Hypothesis B, in the form of _argument injection_). You need both ideas.
 
 ---
 

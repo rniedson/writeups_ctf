@@ -1,5 +1,5 @@
 ---
-import { locales, localeNames, type Locale } from '../i18n/ui';
+import { locales, localeNames, localeFlags, type Locale } from '../i18n/ui';
 import { withBase } from '../i18n/utils';
 
 interface Props {
@@ -10,15 +10,17 @@ interface Props {
 const { locale, pathWithoutLocale } = Astro.props;
 ---
 
-<div class="lang-switcher">
+<div class="lang-switcher" role="group" aria-label="Idioma / Language / Idioma">
   {
     locales.map((l) => (
       <a
         href={withBase(`/${l}/${pathWithoutLocale}`)}
         class={l === locale ? 'active' : ''}
         aria-current={l === locale ? 'true' : undefined}
+        aria-label={localeNames[l]}
+        title={localeNames[l]}
       >
-        {localeNames[l]}
+        <span aria-hidden="true">{localeFlags[l]}</span>
       </a>
     ))
   }
@@ -27,21 +29,30 @@ const { locale, pathWithoutLocale } = Astro.props;
 <style>
   .lang-switcher {
     display: flex;
-    gap: 0.25rem;
-    font-size: 0.85rem;
+    gap: 0.15rem;
   }
   .lang-switcher a {
-    padding: 0.2rem 0.5rem;
-    border-radius: 0.3rem;
-    color: var(--color-text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
     text-decoration: none;
+    font-size: 1.15rem;
+    line-height: 1;
+    filter: grayscale(65%) opacity(0.7);
+    transition:
+      filter 0.15s ease,
+      background-color 0.15s ease,
+      transform 0.15s ease;
   }
   .lang-switcher a.active {
-    color: var(--color-text);
     background: var(--color-bg-raised);
-    font-weight: 600;
+    filter: none;
   }
   .lang-switcher a:hover {
-    color: var(--color-accent);
+    filter: none;
+    transform: translateY(-1px);
   }
 </style>

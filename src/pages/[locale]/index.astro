@@ -1,9 +1,11 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import WriteupCard from '../../components/WriteupCard.astro';
-import { locales, type Locale } from '../../i18n/ui';
-import { useTranslations, localizedPath } from '../../i18n/utils';
+import CategoryIcon from '../../components/CategoryIcon.astro';
+import { locales, type Locale, type UiKey } from '../../i18n/ui';
+import { useTranslations } from '../../i18n/utils';
 import { listWriteups } from '../../lib/writeups';
+import { CATEGORIES } from '../../consts';
 
 export function getStaticPaths() {
   return locales.map((locale) => ({ params: { locale } }));
@@ -11,7 +13,57 @@ export function getStaticPaths() {
 
 const { locale } = Astro.params as { locale: Locale };
 const t = useTranslations(locale);
-const writeups = (await listWriteups(locale)).slice(0, 6);
+const writeups = await listWriteups(locale);
+
+function countBy<T>(items: T[]): Map<T, number> {
+  const map = new Map<T, number>();
+  for (const item of items) map.set(item, (map.get(item) ?? 0) + 1);
+  return map;
+}
+
+const categoryCounts = countBy(writeups.map((w) => w.entry.data.category));
+const categories = CATEGORIES.filter((c) => categoryCounts.has(c)).map((c) => ({
+  value: c,
+  count: categoryCounts.get(c) ?? 0,
+}));
+
+const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'] as const;
+const difficultyLabelKeys: Record<(typeof DIFFICULTY_ORDER)[number], UiKey> = {
+  easy: 'difficulty.easy',
+  medium: 'difficulty.medium',
+  hard: 'difficulty.hard',
+};
+const difficultyCounts = countBy(
+  writeups
+    .map((w) => w.entry.data.difficulty)
+    .filter((d): d is NonNullable<typeof d> => Boolean(d)),
+);
+const difficulties = DIFFICULTY_ORDER.filter((d) => difficultyCounts.has(d)).map((d) => ({
+  value: d,
+  label: t(difficultyLabelKeys[d]),
+  count: difficultyCounts.get(d) ?? 0,
+}));
+
+const tagCounts = countBy(writeups.flatMap((w) => w.entry.data.tags));
+const tags = [...tagCounts.entries()]
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([value, count]) => ({ value, count }));
+
+const localeTag = locale === 'pt' ? 'pt-BR' : locale;
+const monthFormatter = new Intl.DateTimeFormat(localeTag, { year: 'numeric', month: 'long' });
+const monthCounts = countBy(
+  writeups.map((w) => {
+    const d = w.entry.data.pubDate;
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  }),
+);
+const months = [...monthCounts.entries()]
+  .sort((a, b) => b[0].localeCompare(a[0]))
+  .map(([value, count]) => {
+    const [year, month] = value.split('-').map(Number);
+    const label = monthFormatter.format(new Date(Date.UTC(year, month - 1, 1)));
+    return { value, label, count };
+  });
 ---
 
 <BaseLayout locale={locale} title={t('site.title')} description={t('site.tagline')}>
@@ -20,27 +72,335 @@ const writeups = (await listWriteups(locale)).slice(0, 6);
     <p>{t('site.tagline')}</p>
   </section>
 
-  <section>
-    <h2>{t('home.latest')}</h2>
-    {
-      writeups.length === 0 ? (
-        <p>{t('writeups.empty')}</p>
-      ) : (
-        <div class="writeup-list">
-          {writeups.map((w) => (
-            <WriteupCard locale={locale} slug={w.slug} entry={w.entry} isFallback={w.isFallback} />
-          ))}
+  {
+    writeups.length === 0 ? (
+      <p>{t('writeups.empty')}</p>
+    ) : (
+      <div class="catalog">
+        <details class="filters" open>
+          <summary>{t('sidebar.filters')}</summary>
+          <div class="filters-body">
+            <div class="filter-group">
+              <div class="search-wrap">
+                <input
+                  type="search"
+                  id="catalog-search"
+                  class="search-input"
+                  placeholder={t('writeups.searchPlaceholder')}
+                  aria-label={t('writeups.searchPlaceholder')}
+                />
+                <kbd class="search-kbd" aria-hidden="true">
+                  /
+                </kbd>
+              </div>
+            </div>
+
+            {categories.length > 1 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.category')}</legend>
+                {categories.map((c) => (
+                  <label class="filter-option">
+                    <input type="checkbox" data-facet="category" value={c.value} />
+                    <CategoryIcon category={c.value} size={13} />
+                    <span>{c.value}</span>
+                    <span class="filter-count">{c.count}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            {difficulties.length > 1 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.difficulty')}</legend>
+                {difficulties.map((d) => (
+                  <label class="filter-option">
+                    <input type="checkbox" data-facet="difficulty" value={d.value} />
+                    <span>{d.label}</span>
+                    <span class="filter-count">{d.count}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            {months.length > 1 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.month')}</legend>
+                {months.map((m) => (
+                  <label class="filter-option">
+                    <input type="checkbox" data-facet="month" value={m.value} />
+                    <span>{m.label}</span>
+                    <span class="filter-count">{m.count}</span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+
+            {tags.length > 1 && (
+              <fieldset class="filter-group">
+                <legend>{t('sidebar.tags')}</legend>
+                <div class="filter-tags">
+                  {tags.map((tg) => (
+                    <label class="filter-option filter-option-tag">
+                      <input type="checkbox" data-facet="tag" value={tg.value} />
+                      <span>#{tg.value}</span>
+                      <span class="filter-count">{tg.count}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+
+            <button type="button" id="clear-filters" class="clear-filters">
+              {t('sidebar.clear')}
+            </button>
+          </div>
+        </details>
+
+        <div class="catalog-main">
+          <p
+            id="catalog-count"
+            class="catalog-count"
+            data-showing-label={t('sidebar.showing')}
+            data-of-label={t('sidebar.of')}
+          />
+          <div class="writeup-list" id="writeup-list">
+            {writeups.map((w) => (
+              <WriteupCard
+                locale={locale}
+                slug={w.slug}
+                entry={w.entry}
+                isFallback={w.isFallback}
+              />
+            ))}
+          </div>
+          <p id="catalog-empty" class="search-empty" hidden>
+            {t('writeups.filterEmpty')}
+          </p>
         </div>
-      )
-    }
-    <p><a href={localizedPath(locale, 'writeups/')}>{t('home.viewAll')} &rarr;</a></p>
-  </section>
+      </div>
+    )
+  }
 </BaseLayout>
+
+<script>
+  function initCatalog() {
+    const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
+    const list = document.getElementById('writeup-list');
+    const emptyMsg = document.getElementById('catalog-empty');
+    const countElement = document.getElementById('catalog-count');
+    const clearBtn = document.getElementById('clear-filters');
+    if (!list || !countElement) return;
+    const countEl = countElement;
+
+    const cards = Array.from(list.querySelectorAll<HTMLElement>('[data-search]'));
+    const checkboxes = Array.from(document.querySelectorAll<HTMLInputElement>('input[data-facet]'));
+    const total = cards.length;
+    const showingLabel = countEl.dataset.showingLabel ?? 'Showing';
+    const ofLabel = countEl.dataset.ofLabel ?? 'of';
+
+    function selectedByFacet(facet: string): Set<string> {
+      return new Set(
+        checkboxes.filter((cb) => cb.dataset.facet === facet && cb.checked).map((cb) => cb.value),
+      );
+    }
+
+    function readParams() {
+      const params = new URLSearchParams(location.search);
+      if (searchInput) searchInput.value = params.get('q') ?? '';
+      checkboxes.forEach((cb) => {
+        const facet = cb.dataset.facet ?? '';
+        const values = (params.get(facet) ?? '').split(',').filter(Boolean);
+        cb.checked = values.includes(cb.value);
+      });
+    }
+
+    function writeParams() {
+      const params = new URLSearchParams();
+      const q = searchInput?.value.trim() ?? '';
+      if (q) params.set('q', q);
+      const byFacet = new Map<string, string[]>();
+      checkboxes.forEach((cb) => {
+        if (!cb.checked) return;
+        const facet = cb.dataset.facet ?? '';
+        byFacet.set(facet, [...(byFacet.get(facet) ?? []), cb.value]);
+      });
+      byFacet.forEach((values, facet) => params.set(facet, values.join(',')));
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+    }
+
+    function applyFilters() {
+      const query = (searchInput?.value ?? '').trim().toLowerCase();
+      const selectedCategory = selectedByFacet('category');
+      const selectedDifficulty = selectedByFacet('difficulty');
+      const selectedMonth = selectedByFacet('month');
+      const selectedTag = selectedByFacet('tag');
+
+      let visible = 0;
+      cards.forEach((card) => {
+        const matchesSearch = !query || (card.dataset.search ?? '').includes(query);
+        const matchesCategory =
+          selectedCategory.size === 0 || selectedCategory.has(card.dataset.category ?? '');
+        const matchesDifficulty =
+          selectedDifficulty.size === 0 || selectedDifficulty.has(card.dataset.difficulty ?? '');
+        const matchesMonth =
+          selectedMonth.size === 0 || selectedMonth.has(card.dataset.month ?? '');
+        const cardTags = (card.dataset.tags ?? '').split(' ');
+        const matchesTag =
+          selectedTag.size === 0 || [...selectedTag].some((tag) => cardTags.includes(tag));
+        const matches =
+          matchesSearch && matchesCategory && matchesDifficulty && matchesMonth && matchesTag;
+        card.hidden = !matches;
+        if (matches) visible++;
+      });
+
+      if (emptyMsg) emptyMsg.hidden = visible > 0;
+      countEl.textContent = `${showingLabel} ${visible} ${ofLabel} ${total}`;
+      writeParams();
+    }
+
+    readParams();
+    applyFilters();
+
+    searchInput?.addEventListener('input', applyFilters);
+    checkboxes.forEach((cb) => cb.addEventListener('change', applyFilters));
+    clearBtn?.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      checkboxes.forEach((cb) => {
+        cb.checked = false;
+      });
+      applyFilters();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target && ['INPUT', 'TEXTAREA'].includes(target.tagName);
+      if (event.key === '/' && !isTyping) {
+        event.preventDefault();
+        searchInput?.focus();
+      }
+    });
+  }
+  initCatalog();
+</script>
 
 <style>
   .hero {
     padding-block: 2rem 1rem;
   }
+
+  .catalog {
+    display: grid;
+    gap: 2rem;
+    margin-top: 1.5rem;
+    align-items: start;
+  }
+
+  @media (min-width: 900px) {
+    .catalog {
+      grid-template-columns: 260px 1fr;
+    }
+  }
+
+  .filters {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-bg-raised);
+    padding: 0.9rem 1rem;
+  }
+
+  @media (min-width: 900px) {
+    .filters {
+      position: sticky;
+      top: 5.5rem;
+      max-height: calc(100vh - 7rem);
+      overflow-y: auto;
+    }
+  }
+
+  .filters summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .filters[open] summary {
+    margin-bottom: 0.85rem;
+  }
+
+  .filter-group {
+    border: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+  }
+
+  .filter-group:last-of-type {
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-group legend {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    padding: 0;
+  }
+
+  .filter-option {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+
+  .filter-option input {
+    accent-color: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .filter-count {
+    margin-left: auto;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+  }
+
+  .filter-tags {
+    max-height: 11rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+
+  .clear-filters {
+    width: 100%;
+    padding: 0.4rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .clear-filters:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .catalog-count {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin: 0 0 1rem;
+    min-height: 1.2em;
+  }
+
   .writeup-list {
     display: grid;
     gap: 1rem;
