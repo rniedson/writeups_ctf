@@ -3,7 +3,7 @@
 Plataforma pública de writeups de CTF (Capture The Flag) — [Astro](https://astro.build), Markdown,
 GitHub Actions e GitHub Pages. Conteúdo trilíngue: **português**, **espanhol** e **inglês**.
 
-Site publicado (após habilitar o deploy, veja [Deploy](#deploy)): `https://rniedson.github.io/writeups_ctf/`
+Site publicado (após habilitar o deploy, veja [Deploy](#deploy)): `https://writeups.g01x5.com.br/`
 
 ## Arquitetura
 
@@ -78,10 +78,11 @@ public/
 ```
 
 Scripts de exploit para download (não são imagens) ficam em `public/writeups/<evento>/<desafio>/` e são
-linkados no `.md` com o caminho completo incluindo o `base` do site, ex.:
+linkados no `.md` com caminho absoluto a partir da raiz do site (sem `base` — o site não usa mais
+prefixo de caminho), ex.:
 
 ```md
-[baixar solve.py](/writeups_ctf/writeups/flagyard/snaparchive/solve.py)
+[baixar solve.py](/writeups/flagyard/snaparchive/solve.py)
 ```
 
 ## Pré-requisitos
@@ -156,20 +157,23 @@ configurações do repositório): em **Settings → Pages**, defina **Source: Gi
 
 ### URL esperada
 
-- Sem domínio próprio: `https://rniedson.github.io/writeups_ctf/`
-- Com domínio próprio: veja abaixo.
+`https://writeups.g01x5.com.br/`
 
-### Domínio próprio (opcional)
+### Domínio próprio
 
-Não configurado nesta sessão (nenhum domínio foi informado). Para configurar depois:
+Já configurado: `site` em `astro.config.mjs` aponta para `https://writeups.g01x5.com.br` (sem `base`
+— o site vive na raiz do subdomínio) e `public/CNAME` tem o domínio. Falta o lado do GitHub/DNS
+(nenhum dos dois passos abaixo foi feito por esta sessão — exigem acesso à conta):
 
-1. Crie `public/CNAME` com o domínio (ex.: `writeups.seudominio.com`).
-2. Em `astro.config.mjs`, troque `site` para `https://writeups.seudominio.com` e **remova** a linha
-   `base`.
-3. No provedor de DNS, aponte um registro `CNAME` do subdomínio escolhido para
+1. No provedor de DNS de `g01x5.com.br`, aponte um registro `CNAME` de `writeups` para
    `rniedson.github.io`.
-4. Em **Settings → Pages**, adicione o domínio customizado e habilite "Enforce HTTPS" quando o
-   certificado for emitido.
+2. Em **Settings → Pages** do repositório, adicione `writeups.g01x5.com.br` como domínio customizado
+   e habilite "Enforce HTTPS" quando o certificado for emitido (pode levar alguns minutos depois do
+   DNS propagar).
+
+Se o domínio próprio for removido no futuro, reverta `site` para
+`https://rniedson.github.io`, adicione `base: '/writeups_ctf'` de volta em `astro.config.mjs` e
+apague `public/CNAME`.
 
 ## Política de publicação responsável
 
@@ -191,8 +195,8 @@ Não configurado nesta sessão (nenhum domínio foi informado). Para configurar 
 - i18n implementado com o roteamento nativo do Astro (sem biblioteca extra) e fallback para português
   escrito à mão em `src/lib/writeups.ts`, já que o content layer do Astro não tem fallback de tradução
   embutido para content collections livres.
-- Site (`site`) e `base` calculados para GitHub Pages de projeto (`rniedson.github.io/writeups_ctf`),
-  já que nenhum domínio próprio foi informado.
+- Domínio próprio (`writeups.g01x5.com.br`) configurado em `site`/`public/CNAME`, sem `base` — falta
+  só o CNAME no DNS e o domínio customizado em Settings → Pages, que exigem acesso à conta.
 - Bandeiras no seletor de idioma: 🇧🇷 pt, 🇺🇸 en e, por pedido explícito, 🇲🇽 (México) para es em vez
   de 🇪🇸 (Espanha) — mantém `aria-label`/`title` com o nome completo do idioma para acessibilidade.
 - Fonte da imagem de compartilhamento (IBM Plex Mono, OFL — licença em
@@ -216,5 +220,7 @@ Não configurado nesta sessão (nenhum domínio foi informado). Para configurar 
 4. Se estiver tudo certo, `git add`, `git commit` e `git push origin main` (a branch principal já
    existe e está vazia no remoto — o primeiro push cria o histórico).
 5. Em **Settings → Pages**, defina **Source: GitHub Actions** (passo manual, feito uma única vez).
-6. Acompanhe a aba **Actions**: o workflow `Deploy to GitHub Pages` deve rodar automaticamente após o
-   push e publicar em `https://rniedson.github.io/writeups_ctf/`.
+6. Configure o domínio próprio (DNS + domínio customizado em Settings → Pages — veja
+   [Domínio próprio](#domínio-próprio)).
+7. Acompanhe a aba **Actions**: o workflow `Deploy to GitHub Pages` deve rodar automaticamente após o
+   push e publicar em `https://writeups.g01x5.com.br/`.

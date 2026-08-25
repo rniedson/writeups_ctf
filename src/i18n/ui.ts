@@ -17,7 +17,7 @@ export const localeFlags: Record<Locale, string> = {
 
 export const ui = {
   pt: {
-    'site.title': 'Writeups CTF',
+    'site.title': 'g01x5 Writeups CTF',
     'site.tagline': 'Writeups de CTF: web, pwn, reverse, crypto, forense e mais.',
     'nav.home': 'Início',
     'nav.tags': 'Tags',
@@ -64,7 +64,7 @@ export const ui = {
     'notFound.backHome': 'Voltar para o início',
   },
   es: {
-    'site.title': 'Writeups CTF',
+    'site.title': 'g01x5 Writeups CTF',
     'site.tagline': 'Writeups de CTF: web, pwn, reverse, crypto, forense y más.',
     'nav.home': 'Inicio',
     'nav.tags': 'Etiquetas',
@@ -111,7 +111,7 @@ export const ui = {
     'notFound.backHome': 'Volver al inicio',
   },
   en: {
-    'site.title': 'CTF Writeups',
+    'site.title': 'g01x5 CTF Writeups',
     'site.tagline': 'CTF writeups: web, pwn, reverse, crypto, forensics and more.',
     'nav.home': 'Home',
     'nav.tags': 'Tags',

@@ -3,17 +3,13 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import { remarkAlert } from 'remark-github-blockquote-alert';
 
-// Trocar aqui se o repositório for renomeado ou ganhar domínio próprio (ver README).
-const GITHUB_USER = 'rniedson';
-const REPO_NAME = 'writeups_ctf';
-
 const locales = ['pt', 'es', 'en'];
 const defaultLocale = 'pt';
 
+// Domínio próprio (ver public/CNAME). Sem base — o site vive na raiz do subdomínio.
 // https://astro.build/config
 export default defineConfig({
-  site: `https://${GITHUB_USER}.github.io`,
-  base: `/${REPO_NAME}`,
+  site: 'https://writeups.g01x5.com.br',
   trailingSlash: 'always',
   integrations: [
     sitemap({

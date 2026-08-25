@@ -152,6 +152,23 @@ a:hover {
   padding-inline: 1.25rem;
 }
 
+main.wrap {
+  padding-block: 1.75rem 3rem;
+}
+
+/* Esconde visualmente mas mantém acessível a leitores de tela (ex.: h1 redundante com o header). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .prose {
   max-width: var(--content-width);
   font-family: var(--font-serif);

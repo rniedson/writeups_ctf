@@ -76,10 +76,7 @@ const months = [...monthCounts.entries()]
 ---
 
 <BaseLayout locale={locale} title={t('site.title')} description={t('site.tagline')}>
-  <section class="hero">
-    <h1>{t('site.title')}</h1>
-    <p>{t('site.tagline')}</p>
-  </section>
+  <h1 class="sr-only">{t('site.title')}</h1>
 
   {
     writeups.length === 0 ? (
@@ -315,10 +312,6 @@ const months = [...monthCounts.entries()]
 </script>
 
 <style>
-  .hero {
-    padding-block: 2rem 1rem;
-  }
-
   .catalog {
     display: grid;
     gap: 2rem;
